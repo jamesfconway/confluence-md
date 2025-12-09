@@ -374,6 +374,10 @@
     const clearPasteBtn = document.getElementById("clearPaste");
     const copyMarkdownBtn = document.getElementById("copyMarkdown");
 
+    const exportRulesBtn = document.getElementById("exportRules");
+    const importRulesBtn = document.getElementById("importRules");
+    const rulesFileInput = document.getElementById("rulesFileInput");
+
     const includeLinksInput = document.getElementById("includeLinks");
     const includeImagePlaceholdersInput =
       document.getElementById("includeImagePlaceholders");
@@ -648,6 +652,66 @@ turndownService.addRule("confluenceTable", {
       rulesStatus.textContent = "Defaults restored.";
       setTimeout(() => (rulesStatus.textContent = ""), 1500);
       recomputeFromCurrent();
+    });
+
+    // EXPORT RULES TO FILE
+    exportRulesBtn.addEventListener("click", () => {
+      try {
+        const parsed = JSON.parse(rulesArea.value);
+        const pretty = JSON.stringify(parsed, null, 2);
+
+        const blob = new Blob([pretty], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        a.href = url;
+        a.download = `confluence-md-rules-${timestamp}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        rulesStatus.textContent = "Rules exported.";
+        setTimeout(() => (rulesStatus.textContent = ""), 1500);
+      } catch (err) {
+        console.error(err);
+        rulesStatus.textContent = "Cannot export: rules JSON is invalid.";
+        setTimeout(() => (rulesStatus.textContent = ""), 2500);
+      }
+    });
+
+    // IMPORT RULES FROM FILE
+    importRulesBtn.addEventListener("click", () => {
+      rulesFileInput.value = "";
+      rulesFileInput.click();
+    });
+
+    rulesFileInput.addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const text = String(reader.result || "");
+          const parsed = JSON.parse(text);
+          const pretty = JSON.stringify(parsed, null, 2);
+
+          currentRules = parsed;
+          rulesArea.value = pretty;
+          saveRulesToStorage(currentRules);
+          rulesStatus.textContent = `Rules imported from "${file.name}".`;
+          setTimeout(() => (rulesStatus.textContent = ""), 2000);
+
+          recomputeFromCurrent();
+        } catch (err) {
+          console.error(err);
+          rulesStatus.textContent =
+            "Import failed: file does not contain valid rules JSON.";
+          setTimeout(() => (rulesStatus.textContent = ""), 2500);
+        }
+      };
+      reader.readAsText(file);
     });
 
     tabButtons.forEach((btn) => {
