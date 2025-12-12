@@ -1,0 +1,42 @@
+{
+  "htmlPreprocessors": [
+    {
+      "description": "Unwrap <mark> annotation tags",
+      "pattern": "<mark[^>]*>([\\s\\S]*?)<\\/mark>",
+      "replacement": "$1",
+      "flags": "gi"
+    },
+    {
+      "description": "Remove Confluence heading anchor buttons",
+      "pattern": "<span[^>]*class=\\\"heading-anchor-wrapper\\\"[\\s\\S]*?<\\/span>",
+      "replacement": "",
+      "flags": "gi"
+    },
+    {
+      "description": "Strip table colgroup definitions",
+      "pattern": "<colgroup[\\s\\S]*?<\\/colgroup>",
+      "replacement": "",
+      "flags": "gi"
+    },
+    {
+      "description": "Remove Confluence table sorting icons",
+      "pattern": "<figure[^>]*class=\\\"ak-renderer-tableHeader-sorting-icon__wrapper\\\"[\\s\\S]*?<\\/figure>",
+      "replacement": "",
+      "flags": "gi"
+    }
+  ],
+  "markdownPostprocessors": [
+    {
+      "description": "Fix '# - ' heading-list hybrids",
+      "pattern": "^# - ",
+      "replacement": "- ",
+      "flags": "gm"
+    },
+    {
+      "description": "Split combined heading + table header row (e.g. '# Title | ...')",
+      "pattern": "^# ([^|\\\\n]+)\\\\s*\\\\|\\\\s*(.+)$",
+      "replacement": "# $1\\n\\n| $2",
+      "flags": "gm"
+    }
+  ]
+}
