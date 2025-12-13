@@ -127,6 +127,20 @@ if (window.turndownPluginGfm) {
 }
 addImagePlaceholderRule(turndownService);
 
+turndownService.addRule("stripLinksWhenDisabled", {
+  filter: function (node) {
+    if (!node || node.nodeType !== 1) return false;
+    return (
+      node.tagName === "A" &&
+      currentOptions &&
+      currentOptions.includeLinks === false
+    );
+  },
+  replacement: function (content) {
+    return content;
+  }
+});
+
 // Custom table rule: normalise Confluence tables to clean GFM tables
 turndownService.addRule("confluenceTable", {
   filter: "table",
@@ -239,16 +253,6 @@ function convertHtmlToMarkdown(html, rules, options) {
   }
 
   md = applyRegexRules(md, activeRules.markdownPostprocessors || []);
-
-  if (!options.includeLinks) {
-    md = md.replace(
-      /!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\)/g,
-      (match) => {
-        if (match.startsWith("!")) return match;
-        return match.replace(/^\[([^\]]+)\]\([^)]+\)$/, "$1");
-      }
-    );
-  }
 
   return md.trim() + "\n";
 }

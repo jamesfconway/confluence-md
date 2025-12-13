@@ -22,3 +22,14 @@ python3 -m http.server 8000
 ```
 
 All external dependencies are loaded via CDN, so no additional setup is required.
+
+## Regression samples
+
+- `samples/toc.html`: Confluence table-of-contents HTML with nested links that include
+  parentheses and `.1` suffixes. With **Include links** disabled, the output should be:
+
+```
+- Page Title (1)
+- Parenthesis Section (A+B)
+  - Heading (v2)
+```
