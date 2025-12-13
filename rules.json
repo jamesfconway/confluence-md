@@ -1,0 +1,102 @@
+{
+  "htmlPreprocessors": [
+    {
+      "description": "Unwrap <mark> annotation tags",
+      "pattern": "<mark[^>]*>([\\s\\S]*?)<\\/mark>",
+      "replacement": "$1",
+      "flags": "gi"
+    },
+    {
+      "description": "Remove Confluence heading anchor buttons",
+      "pattern": "<span[^>]*class=\"heading-anchor-wrapper\"[\\s\\S]*?<\\/span>",
+      "replacement": "",
+      "flags": "gi"
+    },
+    {
+      "description": "Strip table colgroup definitions",
+      "pattern": "<colgroup[\\s\\S]*?<\\/colgroup>",
+      "replacement": "",
+      "flags": "gi"
+    },
+    {
+      "description": "Remove Confluence table sorting icons",
+      "pattern": "<figure[^>]*class=\"ak-renderer-tableHeader-sorting-icon__wrapper\"[\\s\\S]*?<\\/figure>",
+      "replacement": "",
+      "flags": "gi"
+    },
+    {
+      "description": "Extract status lozenge with colour + text",
+      "pattern": "<span[^>]*class=\\\"status-lozenge-span[^>]*data-color=\\\"([^\\\"]+)\\\"[^>]*>[\\s\\S]*?<span[^>]*>([^<]+)<\\/span>[\\s\\S]*?<\\/span>",
+      "replacement": "%%STATUS-$1-$2-STATUS%%",
+      "flags": "gi"
+    },
+    {
+      "description": "Extract inline status node (editor) with colour + text",
+      "pattern": "<span[^>]*data-node-type=\\\"status\\\"[^>]*data-color=\\\"([^\\\"]+)\\\"[^>]*>([^<]+)<\\/span>",
+      "replacement": "%%STATUS-$1-$2-STATUS%%",
+      "flags": "gi"
+    }
+  ],
+  "markdownPostprocessors": [
+    {
+      "description": "Fix '# - ' heading-list hybrids",
+      "pattern": "^# - ",
+      "replacement": "- ",
+      "flags": "gm"
+    },
+    {
+      "description": "Split combined heading + table header row (e.g. '# Title | ...')",
+      "pattern": "^# ([^|\\n]+)\\s*\\|\\s*(.+)$",
+      "replacement": "# $1\n\n| $2",
+      "flags": "gm"
+    },
+    {
+      "description": "Blue lozenge → 🔵",
+      "pattern": "%%STATUS-blue-([^%]+)-STATUS%%",
+      "replacement": "(🔵 $1)",
+      "flags": "gi"
+    },
+    {
+      "description": "Green lozenge → 🟢",
+      "pattern": "%%STATUS-green-([^%]+)-STATUS%%",
+      "replacement": "(🟢 $1)",
+      "flags": "gi"
+    },
+    {
+      "description": "Yellow lozenge → 🟡",
+      "pattern": "%%STATUS-yellow-([^%]+)-STATUS%%",
+      "replacement": "(🟡 $1)",
+      "flags": "gi"
+    },
+    {
+      "description": "Red lozenge → 🔴",
+      "pattern": "%%STATUS-red-([^%]+)-STATUS%%",
+      "replacement": "(🔴 $1)",
+      "flags": "gi"
+    },
+    {
+      "description": "Grey lozenge → ⚪",
+      "pattern": "%%STATUS-grey-([^%]+)-STATUS%%",
+      "replacement": "(⚪ $1)",
+      "flags": "gi"
+    },
+    {
+      "description": "Purple lozenge → 🟣",
+      "pattern": "%%STATUS-purple-([^%]+)-STATUS%%",
+      "replacement": "(🟣 $1)",
+      "flags": "gi"
+    },
+    {
+      "description": "Brown lozenge → 🟤",
+      "pattern": "%%STATUS-brown-([^%]+)-STATUS%%",
+      "replacement": "(🟤 $1)",
+      "flags": "gi"
+    },
+    {
+      "description": "Convert STATUS placeholders to default emoji lozenge",
+      "pattern": "%%STATUS-([^-]+)-([^%]+)-STATUS%%",
+      "replacement": "(🔘 $2)",
+      "flags": "gi"
+    }
+  ]
+}
