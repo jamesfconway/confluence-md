@@ -45,7 +45,11 @@ function addImagePlaceholderRule(service) {
     "img,[data-node-type=\"media\"],[data-prosemirror-node-name=\"media\"]";
   const MEDIA_WRAPPER_SELECTOR =
     "[data-prosemirror-node-name=\"mediaSingle\"],[data-node-type=\"mediaSingle\"],.mediaSingleView-content-wrap";
-  const MEDIA_ANY_SELECTOR = `${MEDIA_ELEMENT_SELECTOR},${MEDIA_WRAPPER_SELECTOR}`;
+  // Confluence "new file experience" media cards use wrapper divs while previews
+  // load, so capture those as image containers too.
+  const MEDIA_CARD_SELECTOR =
+    "[data-media-vc-wrapper],[data-testid=\"media-file-card-view\"],[data-testid=\"ImageRendererWrapper\"],[data-testid=\"media-card-loading-wrapper\"]";
+  const MEDIA_ANY_SELECTOR = `${MEDIA_ELEMENT_SELECTOR},${MEDIA_WRAPPER_SELECTOR},${MEDIA_CARD_SELECTOR}`;
 
   function findMediaElement(node) {
     if (!node || node.nodeType !== 1) return null;
