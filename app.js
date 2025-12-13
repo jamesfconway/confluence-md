@@ -30,12 +30,31 @@ let currentOptions = {
   emojiNames: false
 };
 
+let imageCounter = 0;
+function resetImageCounter() {
+  imageCounter = 0;
+}
+
+function nextImageLabel() {
+  imageCounter += 1;
+  return `Image ${imageCounter}`;
+}
+
 function addImagePlaceholderRule(service) {
   service.addRule("imagePlaceholder", {
-    filter: "img",
+    filter: function (node) {
+      if (!node || node.nodeType !== 1) return false;
+      const tag = node.tagName && node.tagName.toLowerCase();
+      const dataNodeType = node.getAttribute("data-node-type") || "";
+      return tag === "img" || dataNodeType.toLowerCase() === "media";
+    },
     replacement: function (content, node) {
       const opts = currentOptions || {};
-      const alt = node.getAttribute("alt") || "";
+      const alt =
+        node.getAttribute("alt") ||
+        node.getAttribute("data-alt") ||
+        node.getAttribute("data-file-name") ||
+        "";
       const src = node.getAttribute("src") || "";
       const emojiShort = node.getAttribute("data-emoji-short-name") || "";
 
@@ -59,18 +78,24 @@ function addImagePlaceholderRule(service) {
 
       if (!opts.includeImagePlaceholders) return "";
 
-      let filename = "";
       if (src) {
         try {
           const url = new URL(src, window.location.href);
           const parts = url.pathname.split("/");
-          filename = parts[parts.length - 1] || "";
+          const filename = parts[parts.length - 1] || "";
+          if (filename && !alt) {
+            node.setAttribute("data-file-name", filename);
+          }
         } catch (e) {
-          filename = src.split("/").pop() || "";
+          const filename = src.split("/").pop() || "";
+          if (filename && !alt) {
+            node.setAttribute("data-file-name", filename);
+          }
         }
       }
-      const label = filename || alt || "Image";
-      return `[Image: ${label}]`;
+
+      const label = nextImageLabel();
+      return `[${label}]`;
     }
   });
 }
@@ -182,6 +207,7 @@ const EMPTY_RULES = { htmlPreprocessors: [], markdownPostprocessors: [] };
 function convertHtmlToMarkdown(html, rules, options) {
   if (!html) return "";
   currentOptions = { ...currentOptions, ...options };
+  resetImageCounter();
 
   const activeRules = rules || EMPTY_RULES;
 
