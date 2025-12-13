@@ -41,22 +41,39 @@ function nextImageLabel() {
 }
 
 function addImagePlaceholderRule(service) {
+  const MEDIA_ELEMENT_SELECTOR =
+    "img,[data-node-type=\"media\"],[data-prosemirror-node-name=\"media\"]";
+  const MEDIA_WRAPPER_SELECTOR =
+    "[data-prosemirror-node-name=\"mediaSingle\"],[data-node-type=\"mediaSingle\"],.mediaSingleView-content-wrap";
+  const MEDIA_ANY_SELECTOR = `${MEDIA_ELEMENT_SELECTOR},${MEDIA_WRAPPER_SELECTOR}`;
+
+  function findMediaElement(node) {
+    if (!node || node.nodeType !== 1) return null;
+    if (node.matches(MEDIA_ELEMENT_SELECTOR)) return node;
+    const descendant = node.querySelector(MEDIA_ELEMENT_SELECTOR);
+    if (descendant) return descendant;
+    return node.closest(MEDIA_ELEMENT_SELECTOR);
+  }
+
   service.addRule("imagePlaceholder", {
     filter: function (node) {
       if (!node || node.nodeType !== 1) return false;
-      const tag = node.tagName && node.tagName.toLowerCase();
-      const dataNodeType = node.getAttribute("data-node-type") || "";
-      return tag === "img" || dataNodeType.toLowerCase() === "media";
+      if (!node.matches(MEDIA_ANY_SELECTOR)) return false;
+
+      const ancestorMedia = node.parentElement?.closest(MEDIA_ANY_SELECTOR);
+      const closestMedia = node.closest(MEDIA_ANY_SELECTOR);
+      return closestMedia === node && !ancestorMedia;
     },
     replacement: function (content, node) {
       const opts = currentOptions || {};
+      const mediaNode = findMediaElement(node) || node;
       const alt =
-        node.getAttribute("alt") ||
-        node.getAttribute("data-alt") ||
-        node.getAttribute("data-file-name") ||
+        mediaNode.getAttribute("alt") ||
+        mediaNode.getAttribute("data-alt") ||
+        mediaNode.getAttribute("data-file-name") ||
         "";
-      const src = node.getAttribute("src") || "";
-      const emojiShort = node.getAttribute("data-emoji-short-name") || "";
+      const src = mediaNode.getAttribute("src") || "";
+      const emojiShort = mediaNode.getAttribute("data-emoji-short-name") || "";
 
       let isEmoji = false;
       try {
@@ -84,12 +101,12 @@ function addImagePlaceholderRule(service) {
           const parts = url.pathname.split("/");
           const filename = parts[parts.length - 1] || "";
           if (filename && !alt) {
-            node.setAttribute("data-file-name", filename);
+            mediaNode.setAttribute("data-file-name", filename);
           }
         } catch (e) {
           const filename = src.split("/").pop() || "";
           if (filename && !alt) {
-            node.setAttribute("data-file-name", filename);
+            mediaNode.setAttribute("data-file-name", filename);
           }
         }
       }
