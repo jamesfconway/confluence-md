@@ -1,50 +1,5 @@
 const RULES_PATH = "rules.json";
 
-const EMBEDDED_DEFAULT_RULES = {
-  htmlPreprocessors: [
-    {
-      description: "Unwrap <mark> annotation tags",
-      pattern: "<mark[^>]*>([\\s\\S]*?)<\\/mark>",
-      replacement: "$1",
-      flags: "gi"
-    },
-    {
-      description: "Remove Confluence heading anchor buttons",
-      pattern: "<span[^>]*class=\\\"heading-anchor-wrapper\\\"[\\s\\S]*?<\\/span>",
-      replacement: "",
-      flags: "gi"
-    },
-    {
-      description: "Strip table colgroup definitions",
-      pattern: "<colgroup[\\s\\S]*?<\\/colgroup>",
-      replacement: "",
-      flags: "gi"
-    },
-    {
-      description: "Remove Confluence table sorting icons",
-      pattern:
-        "<figure[^>]*class=\\\"ak-renderer-tableHeader-sorting-icon__wrapper\\\"[\\s\\S]*?<\\/figure>",
-      replacement: "",
-      flags: "gi"
-    }
-  ],
-  markdownPostprocessors: [
-    {
-      description: "Fix '# - ' heading-list hybrids",
-      pattern: "^# - ",
-      replacement: "- ",
-      flags: "gm"
-    },
-    {
-      description:
-        "Split combined heading + table header row (e.g. '# Title | ...')",
-      pattern: "^# ([^|\\\\n]+)\\\\s*\\\\|\\\\s*(.+)$",
-      replacement: "# $1\\n\\n| $2",
-      flags: "gm"
-    }
-  ]
-};
-
 const pasteArea = document.getElementById("pasteArea");
 const htmlView = document.getElementById("htmlView");
 const markdownView = document.getElementById("markdownView");
@@ -222,11 +177,13 @@ function applyRegexRules(text, rules = []) {
   return out;
 }
 
+const EMPTY_RULES = { htmlPreprocessors: [], markdownPostprocessors: [] };
+
 function convertHtmlToMarkdown(html, rules, options) {
   if (!html) return "";
   currentOptions = { ...currentOptions, ...options };
 
-  const activeRules = rules || EMBEDDED_DEFAULT_RULES;
+  const activeRules = rules || EMPTY_RULES;
 
   const preprocessed = applyRegexRules(html, activeRules.htmlPreprocessors || []);
 
@@ -253,7 +210,7 @@ function convertHtmlToMarkdown(html, rules, options) {
   return md.trim() + "\n";
 }
 
-let currentRules = structuredClone(EMBEDDED_DEFAULT_RULES);
+let currentRules = structuredClone(EMPTY_RULES);
 rulesArea.value = "Loading rules...";
 let lastHtml = "";
 
@@ -276,11 +233,11 @@ async function loadRulesFromFile() {
     currentRules = data;
     updateRulesView(RULES_PATH);
   } catch (err) {
-    console.error("Could not load rules.json; using embedded defaults.", err);
-    currentRules = structuredClone(EMBEDDED_DEFAULT_RULES);
-    rulesStatus.textContent = "Using embedded default rules (rules.json unavailable).";
-    setTimeout(() => (rulesStatus.textContent = ""), 3000);
-    updateRulesView();
+    console.error("Could not load rules.json; conversion will omit custom rules.", err);
+    currentRules = structuredClone(EMPTY_RULES);
+    rulesStatus.textContent = "rules.json missing or unreadable; running without custom rules.";
+    setTimeout(() => (rulesStatus.textContent = ""), 4000);
+    updateRulesView("built-in defaults removed");
   }
 }
 
