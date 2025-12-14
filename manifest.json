@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Confluence to Markdown Converter",
+  "description": "Convert Confluence selections to Markdown via popup, side panel, or context menus.",
+  "version": "1.0.0",
+  "action": {
+    "default_popup": "index.html",
+    "default_title": "Confluence → Markdown"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "contextMenus",
+    "scripting",
+    "activeTab",
+    "clipboardWrite",
+    "clipboardRead",
+    "storage",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "side_panel": {
+    "default_path": "index.html"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' https://unpkg.com; object-src 'self'"
+  }
+}
