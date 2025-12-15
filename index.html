@@ -4,9 +4,16 @@
   <meta charset="utf-8" />
   <title>Confluence → Markdown Converter</title>
   <link rel="stylesheet" href="styles.css" />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css"
+  />
   <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
   <script src="https://unpkg.com/turndown-plugin-gfm/dist/turndown-plugin-gfm.js"></script>
   <script src="converter.js"></script>
+  <script src="https://unpkg.com/prettier@2.8.8/standalone.js"></script>
+  <script src="https://unpkg.com/prettier@2.8.8/parser-html.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 </head>
 <body>
   <header>
@@ -47,6 +54,9 @@
                 </div>
               </summary>
               <div class="fold-body">
+                <div class="fold-actions">
+                  <button class="secondary" id="pasteFromClipboard">Paste from clipboard</button>
+                </div>
                 <small>Click and paste here, or use the right-click menu to prefill.</small>
                 <div id="pasteArea" contenteditable="true" aria-label="Confluence HTML preview"></div>
               </div>
@@ -60,7 +70,13 @@
                 </div>
               </summary>
               <div class="fold-body">
-                <textarea id="htmlView" spellcheck="false"></textarea>
+                <div class="code-panel">
+                  <div class="code-panel__header">
+                    <span class="muted">Formatted &amp; highlighted</span>
+                  </div>
+                  <pre class="code-panel__body"><code id="htmlHighlight" class="language-html"></code></pre>
+                </div>
+                <textarea id="htmlView" spellcheck="false" aria-label="Raw HTML (formatted)"></textarea>
               </div>
             </details>
 

@@ -1,11 +1,13 @@
 const RULES_PATH = "rules.json";
 const pasteArea = document.getElementById("pasteArea");
 const htmlView = document.getElementById("htmlView");
+const htmlHighlight = document.getElementById("htmlHighlight");
 const markdownView = document.getElementById("markdownView");
 const statusEl = document.getElementById("status");
 const rulesArea = document.getElementById("rulesArea");
 const rulesStatus = document.getElementById("rulesStatus");
 const clearPasteBtn = document.getElementById("clearPaste");
+const pasteFromClipboardBtn = document.getElementById("pasteFromClipboard");
 const copyMarkdownBtn = document.getElementById("copyMarkdown");
 const includeLinksInput = document.getElementById("includeLinks");
 const includeImagePlaceholdersInput = document.getElementById("includeImagePlaceholders");
@@ -76,11 +78,64 @@ async function loadRulesFromFile() {
   setTimeout(() => (rulesStatus.textContent = ""), 2000);
 }
 
+function formatHtml(html) {
+  if (!window.prettier || !window.prettierPlugins?.html) return html;
+  try {
+    return prettier.format(html, {
+      parser: "html",
+      plugins: [prettierPlugins.html],
+      printWidth: 100
+    });
+  } catch (err) {
+    console.warn("Could not format HTML", err);
+    return html;
+  }
+}
+
+function renderHtmlViews(html) {
+  const formatted = formatHtml(html);
+  if (htmlView) {
+    htmlView.value = formatted;
+  }
+  if (htmlHighlight) {
+    htmlHighlight.textContent = formatted;
+    if (window.hljs?.highlightElement) {
+      hljs.highlightElement(htmlHighlight);
+    }
+  }
+}
+
+async function readClipboardContent() {
+  if (navigator.clipboard?.read) {
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        if (item.types.includes("text/html")) {
+          const blob = await item.getType("text/html");
+          return blob.text();
+        }
+        if (item.types.includes("text/plain")) {
+          const blob = await item.getType("text/plain");
+          return blob.text();
+        }
+      }
+    } catch (err) {
+      console.warn("Could not read rich clipboard contents", err);
+    }
+  }
+
+  if (navigator.clipboard?.readText) {
+    return navigator.clipboard.readText();
+  }
+
+  throw new Error("Clipboard API unavailable");
+}
+
 function ingestHtml(html, sourceLabel = "") {
   if (!html) return;
   lastHtml = html;
   pasteArea.innerHTML = html;
-  htmlView.value = html;
+  renderHtmlViews(html);
   renderMarkdown();
   setStatus(sourceLabel ? `Converted from ${sourceLabel}.` : "Converted.");
 }
@@ -98,9 +153,27 @@ pasteArea.addEventListener("paste", (e) => {
   ingestHtml(source, "clipboard");
 });
 
+pasteFromClipboardBtn?.addEventListener("click", async () => {
+  setStatus("");
+  try {
+    const clipboardText = await readClipboardContent();
+    if (!clipboardText) {
+      setStatus("Clipboard is empty.");
+      return;
+    }
+    ingestHtml(clipboardText, "clipboard");
+  } catch (err) {
+    console.warn("Clipboard read failed", err);
+    setStatus("Clipboard access was denied or unavailable.");
+  }
+});
+
 clearPasteBtn?.addEventListener("click", () => {
   pasteArea.innerHTML = "";
   htmlView.value = "";
+  if (htmlHighlight) {
+    htmlHighlight.textContent = "";
+  }
   markdownView.value = "";
   lastHtml = "";
   setStatus("Cleared.");
