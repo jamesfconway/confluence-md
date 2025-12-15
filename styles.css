@@ -187,14 +187,7 @@ main {
   gap: 0.5rem;
 }
 
-
-.inline-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin: 0.25rem 0 0.5rem;
-}
-
-.fold-footer {
+.fold-actions {
   display: flex;
   justify-content: flex-end;
 }
