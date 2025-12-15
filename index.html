@@ -6,10 +6,14 @@
   <link rel="stylesheet" href="styles.css" />
   <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
   <script src="https://unpkg.com/turndown-plugin-gfm/dist/turndown-plugin-gfm.js"></script>
+  <script src="converter.js"></script>
 </head>
 <body>
   <header>
-    <h1>Confluence → Markdown Converter</h1>
+    <div class="title">
+      <span class="pill">Extension</span>
+      <h1>Confluence → Markdown Converter</h1>
+    </div>
     <div class="tabs">
       <button class="tab active" data-tab="convert">Convert</button>
       <button class="tab" data-tab="settings">Settings</button>
@@ -17,82 +21,95 @@
   </header>
 
   <main>
-    <!-- Convert -->
     <section class="panel active" id="panel-convert">
-      <div class="convert-shell">
-        <div class="pane-left" id="paneLeft">
-          <div class="pane-section">
-            <div class="box" style="flex: 1;">
-              <label for="pasteArea">1. Paste from Confluence here</label>
-              <small>Click, then Ctrl+V. Uses HTML on the clipboard.</small>
-              <div id="pasteArea" contenteditable="true"></div>
-              <div class="controls">
-                <button class="secondary" id="clearPaste">Clear</button>
-                <span id="status"></span>
+      <div class="panel-grid">
+        <div class="card card-accent">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Context menu ready</p>
+              <h2>Paste or ingest Confluence snippets</h2>
+            </div>
+            <div class="actions">
+              <button class="secondary" id="clearPaste">Clear</button>
+              <button class="primary" id="copyMarkdown">Copy Markdown</button>
+            </div>
+          </div>
+          <div class="status-row">
+            <span id="status">Waiting for content…</span>
+          </div>
+
+          <div class="accordion">
+            <details id="section-copied" class="fold">
+              <summary>
+                <div class="summary-content">
+                  <span class="summary-title">Copied content</span>
+                  <span class="summary-hint">Rendered preview (default collapsed)</span>
+                </div>
+              </summary>
+              <div class="fold-body">
+                <small>Click and paste here, or use the right-click menu to prefill.</small>
+                <div id="pasteArea" contenteditable="true" aria-label="Confluence HTML preview"></div>
               </div>
-            </div>
-            <div class="box" style="flex: 1; margin-top: 0.75rem;">
-              <label for="htmlView">2. Raw HTML (debug)</label>
-              <small>What Confluence actually put on the clipboard.</small>
-              <textarea id="htmlView" spellcheck="false"></textarea>
-            </div>
+            </details>
+
+            <details id="section-html" class="fold">
+              <summary>
+                <div class="summary-content">
+                  <span class="summary-title">Raw HTML</span>
+                  <span class="summary-hint">Debug view</span>
+                </div>
+              </summary>
+              <div class="fold-body">
+                <textarea id="htmlView" spellcheck="false"></textarea>
+              </div>
+            </details>
+
+            <details id="section-markdown" class="fold" open>
+              <summary>
+                <div class="summary-content">
+                  <span class="summary-title">Markdown output</span>
+                  <span class="summary-hint">Default open</span>
+                </div>
+              </summary>
+              <div class="fold-body">
+                <textarea id="markdownView" spellcheck="false"></textarea>
+                <div class="controls">
+                  <div class="option-group">
+                    <label>
+                      <input type="checkbox" id="includeLinks" checked />
+                      Include links
+                    </label>
+                    <label>
+                      <input type="checkbox" id="includeImagePlaceholders" checked />
+                      Image placeholders
+                    </label>
+                    <label>
+                      <input type="checkbox" id="emojiNames" />
+                      Emoji names
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </details>
           </div>
         </div>
 
-        <div class="resizer" id="resizer"></div>
-
-        <div class="pane-right">
-          <div class="pane-section" style="flex: 3;">
-            <div class="box" style="flex: 1;">
-              <label for="markdownView">3. Markdown output</label>
-              <small>Copy this into ChatGPT / your editor.</small>
-              <textarea id="markdownView" spellcheck="false"></textarea>
-              <div class="controls">
-                <button class="primary" id="copyMarkdown">Copy Markdown</button>
-                <div class="option-group">
-                  <label>
-                    <input type="checkbox" id="includeLinks" checked />
-                    Include links
-                  </label>
-                  <label>
-                    <input type="checkbox" id="includeImagePlaceholders" checked />
-                    Image placeholders
-                  </label>
-                  <label>
-                    <input type="checkbox" id="emojiNames" />
-                    Emoji names
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="pane-section" style="flex: 1; border-top: 1px solid #eee;">
-            <div class="box">
-              <label>Notes</label>
-              <small>
-                If something looks wrong, describe it to ChatGPT and update
-                <code>rules.json</code> in the repo. Reload, then paste again.
-              </small>
-            </div>
-          </div>
+        <div class="card notes-card">
+          <p class="eyebrow">Notes</p>
+          <p class="muted">If something looks wrong, describe it to ChatGPT and update <code>rules.json</code>. Reload, then paste again.</p>
         </div>
       </div>
     </section>
 
-    <!-- Settings -->
     <section class="panel" id="panel-settings">
-      <div style="flex: 1; display: flex; flex-direction: column; padding: 0.75rem; box-sizing: border-box; overflow: hidden;">
-        <div class="box" style="flex: 0 0 auto;">
-          <label for="rulesArea">Rules JSON (read-only)</label>
-          <small>
-            Rules are stored in <code>rules.json</code> in this repo. Edit that file and reload this page to apply changes.
-          </small>
+      <div class="panel-grid">
+        <div class="card">
+          <p class="eyebrow">Rules JSON (read-only)</p>
+          <p class="muted">Rules are stored in <code>rules.json</code>. Edit that file and reload this page to apply changes.</p>
           <div class="controls">
             <span id="rulesStatus"></span>
           </div>
-        </div>
-        <div class="box" style="flex: 1 1 auto; margin-top: 0.75rem; min-height: 0;">
-          <textarea id="rulesArea" spellcheck="false" style="width: 100%; height: 100%;" readonly></textarea>
+          <textarea id="rulesArea" spellcheck="false" readonly></textarea>
         </div>
       </div>
     </section>
