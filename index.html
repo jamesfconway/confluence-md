@@ -4,16 +4,8 @@
   <meta charset="utf-8" />
   <title>Confluence → Markdown Converter</title>
   <link rel="stylesheet" href="styles.css" />
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css"
-  />
-  <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
-  <script src="https://unpkg.com/turndown-plugin-gfm/dist/turndown-plugin-gfm.js"></script>
   <script src="converter.js"></script>
-  <script src="https://unpkg.com/prettier@2.8.8/standalone.js"></script>
-  <script src="https://unpkg.com/prettier@2.8.8/parser-html.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="app.js"></script>
 </head>
 <body>
   <header>
@@ -38,11 +30,15 @@
             </div>
             <div class="actions">
               <button class="secondary" id="clearPaste">Clear</button>
-              <button class="primary" id="copyMarkdown">Copy Markdown</button>
+              <button class="primary copy-markdown" id="copyMarkdown">Copy Markdown</button>
             </div>
           </div>
           <div class="status-row">
             <span id="status">Waiting for content…</span>
+          </div>
+
+          <div class="inline-actions">
+            <button class="secondary" id="pasteFromClipboard">Paste from clipboard</button>
           </div>
 
           <div class="accordion">
@@ -54,9 +50,6 @@
                 </div>
               </summary>
               <div class="fold-body">
-                <div class="fold-actions">
-                  <button class="secondary" id="pasteFromClipboard">Paste from clipboard</button>
-                </div>
                 <small>Click and paste here, or use the right-click menu to prefill.</small>
                 <div id="pasteArea" contenteditable="true" aria-label="Confluence HTML preview"></div>
               </div>
@@ -107,6 +100,10 @@
                 </div>
               </div>
             </details>
+
+            <div class="fold-footer">
+              <button class="primary copy-markdown" id="copyMarkdownSecondary">Copy to clipboard</button>
+            </div>
           </div>
         </div>
 

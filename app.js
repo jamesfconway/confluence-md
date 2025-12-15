@@ -8,7 +8,7 @@ const rulesArea = document.getElementById("rulesArea");
 const rulesStatus = document.getElementById("rulesStatus");
 const clearPasteBtn = document.getElementById("clearPaste");
 const pasteFromClipboardBtn = document.getElementById("pasteFromClipboard");
-const copyMarkdownBtn = document.getElementById("copyMarkdown");
+const copyMarkdownButtons = document.querySelectorAll(".copy-markdown");
 const includeLinksInput = document.getElementById("includeLinks");
 const includeImagePlaceholdersInput = document.getElementById("includeImagePlaceholders");
 const emojiNamesInput = document.getElementById("emojiNames");
@@ -179,14 +179,16 @@ clearPasteBtn?.addEventListener("click", () => {
   setStatus("Cleared.");
 });
 
-copyMarkdownBtn?.addEventListener("click", async () => {
-  try {
-    await navigator.clipboard.writeText(markdownView.value);
-    setStatus("Markdown copied to clipboard.");
-  } catch (err) {
-    setStatus("Could not copy markdown.");
-  }
-});
+copyMarkdownButtons.forEach((btn) =>
+  btn.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(markdownView.value);
+      setStatus("Markdown copied to clipboard.");
+    } catch (err) {
+      setStatus("Could not copy markdown.");
+    }
+  })
+);
 
 [includeLinksInput, includeImagePlaceholdersInput, emojiNamesInput].forEach((input) => {
   input?.addEventListener("change", () => {
