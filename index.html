@@ -37,8 +37,9 @@
               <h2>Paste or ingest Confluence snippets</h2>
             </div>
             <div class="actions">
-              <button class="secondary" id="clearPaste">Clear</button>
+              <button class="primary" id="pasteFromClipboard">Paste from clipboard</button>
               <button class="primary" id="copyMarkdown">Copy Markdown</button>
+              <button class="secondary" id="clearPaste">Clear</button>
             </div>
           </div>
           <div class="status-row">
@@ -54,10 +55,9 @@
                 </div>
               </summary>
               <div class="fold-body">
-                <div class="fold-actions">
-                  <button class="secondary" id="pasteFromClipboard">Paste from clipboard</button>
-                </div>
-                <small>Click and paste here, or use the right-click menu to prefill.</small>
+                <small class="muted"
+                  >Click and paste here, or use the right-click menu to prefill your clipboard.</small
+                >
                 <div id="pasteArea" contenteditable="true" aria-label="Confluence HTML preview"></div>
               </div>
             </details>
@@ -89,6 +89,13 @@
               </summary>
               <div class="fold-body">
                 <textarea id="markdownView" spellcheck="false"></textarea>
+                <div
+                  id="markdownFeedback"
+                  class="inline-feedback"
+                  role="status"
+                  aria-live="polite"
+                  aria-atomic="true"
+                ></div>
                 <div class="controls">
                   <div class="option-group">
                     <label>

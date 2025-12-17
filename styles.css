@@ -155,6 +155,20 @@ main {
   font-size: 0.85rem;
 }
 
+.inline-feedback {
+  min-height: 1.1rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.inline-feedback[data-state="success"] {
+  color: #a7f3d0;
+}
+
+.inline-feedback[data-state="error"] {
+  color: #fca5a5;
+}
+
 .accordion {
   display: flex;
   flex-direction: column;

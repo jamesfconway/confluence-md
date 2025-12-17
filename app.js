@@ -4,6 +4,7 @@ const htmlView = document.getElementById("htmlView");
 const htmlHighlight = document.getElementById("htmlHighlight");
 const markdownView = document.getElementById("markdownView");
 const statusEl = document.getElementById("status");
+const markdownFeedback = document.getElementById("markdownFeedback");
 const rulesArea = document.getElementById("rulesArea");
 const rulesStatus = document.getElementById("rulesStatus");
 const clearPasteBtn = document.getElementById("clearPaste");
@@ -21,6 +22,7 @@ const panels = {
 const converterService = Converter.createService();
 let currentRules = { ...Converter.EMPTY_RULES };
 let lastHtml = "";
+let inlineFeedbackTimeout;
 
 const STORAGE_KEY = "converterOptions";
 
@@ -38,6 +40,24 @@ function renderMarkdown(optionsOverride = {}) {
 
 function setStatus(text) {
   statusEl.textContent = text;
+}
+
+function setInlineFeedback(text, state = "") {
+  if (!markdownFeedback) return;
+  markdownFeedback.textContent = text;
+  markdownFeedback.dataset.state = state;
+  clearTimeout(inlineFeedbackTimeout);
+  if (text) {
+    inlineFeedbackTimeout = setTimeout(() => {
+      markdownFeedback.textContent = "";
+      markdownFeedback.dataset.state = "";
+    }, 2500);
+  }
+}
+
+function resetFeedback() {
+  setInlineFeedback("");
+  setStatus("");
 }
 
 async function persistOptions() {
@@ -131,6 +151,23 @@ async function readClipboardContent() {
   throw new Error("Clipboard API unavailable");
 }
 
+async function ingestFromClipboard(sourceLabel = "clipboard") {
+  resetFeedback();
+  try {
+    const clipboardText = await readClipboardContent();
+    if (!clipboardText) {
+      setStatus("Clipboard is empty.");
+      setInlineFeedback("Clipboard is empty.", "error");
+      return;
+    }
+    ingestHtml(clipboardText, sourceLabel);
+  } catch (err) {
+    console.warn("Clipboard read failed", err);
+    setStatus("Clipboard access was denied or unavailable.");
+    setInlineFeedback("Paste failed. Try keyboard paste.", "error");
+  }
+}
+
 function ingestHtml(html, sourceLabel = "") {
   if (!html) return;
   lastHtml = html;
@@ -140,33 +177,21 @@ function ingestHtml(html, sourceLabel = "") {
   setStatus(sourceLabel ? `Converted from ${sourceLabel}.` : "Converted.");
 }
 
-pasteArea.addEventListener("paste", (e) => {
+pasteArea.addEventListener("paste", async (e) => {
   e.preventDefault();
-  setStatus("");
-  const html = e.clipboardData.getData("text/html");
-  const plain = e.clipboardData.getData("text/plain");
-  if (!html && !plain) {
-    setStatus("No HTML/plain text on clipboard.");
+  resetFeedback();
+  const html = e.clipboardData?.getData("text/html");
+  const plain = e.clipboardData?.getData("text/plain");
+
+  if (html || plain) {
+    ingestHtml(html || plain, "clipboard");
     return;
   }
-  const source = html || plain;
-  ingestHtml(source, "clipboard");
+
+  await ingestFromClipboard("clipboard");
 });
 
-pasteFromClipboardBtn?.addEventListener("click", async () => {
-  setStatus("");
-  try {
-    const clipboardText = await readClipboardContent();
-    if (!clipboardText) {
-      setStatus("Clipboard is empty.");
-      return;
-    }
-    ingestHtml(clipboardText, "clipboard");
-  } catch (err) {
-    console.warn("Clipboard read failed", err);
-    setStatus("Clipboard access was denied or unavailable.");
-  }
-});
+pasteFromClipboardBtn?.addEventListener("click", () => ingestFromClipboard("clipboard"));
 
 clearPasteBtn?.addEventListener("click", () => {
   pasteArea.innerHTML = "";
@@ -177,16 +202,50 @@ clearPasteBtn?.addEventListener("click", () => {
   markdownView.value = "";
   lastHtml = "";
   setStatus("Cleared.");
+  setInlineFeedback("");
 });
 
-copyMarkdownBtn?.addEventListener("click", async () => {
+async function copyMarkdown() {
+  if (!markdownView) return false;
+
   try {
-    await navigator.clipboard.writeText(markdownView.value);
-    setStatus("Markdown copied to clipboard.");
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(markdownView.value);
+      setStatus("Markdown copied to clipboard.");
+      setInlineFeedback("Copied to clipboard.", "success");
+      return true;
+    }
   } catch (err) {
-    setStatus("Could not copy markdown.");
+    console.warn("Clipboard write failed", err);
   }
-});
+
+  try {
+    const selection = document.getSelection();
+    const previousRange = selection?.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
+    markdownView.focus();
+    markdownView.select();
+    const ok = document.execCommand?.("copy");
+    if (previousRange) {
+      selection.removeAllRanges();
+      selection.addRange(previousRange);
+    } else {
+      markdownView.setSelectionRange(markdownView.value.length, markdownView.value.length);
+    }
+    if (ok) {
+      setStatus("Markdown copied to clipboard.");
+      setInlineFeedback("Copied. Use Ctrl/Cmd+V to paste.", "success");
+      return true;
+    }
+  } catch (err) {
+    console.warn("Fallback copy failed", err);
+  }
+
+  setStatus("Could not copy markdown. Clipboard unavailable.");
+  setInlineFeedback("Copy failed. Use Ctrl/Cmd+C.", "error");
+  return false;
+}
+
+copyMarkdownBtn?.addEventListener("click", copyMarkdown);
 
 [includeLinksInput, includeImagePlaceholdersInput, emojiNamesInput].forEach((input) => {
   input?.addEventListener("change", () => {
