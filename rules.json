@@ -35,6 +35,18 @@
       "pattern": "<span[^>]*data-node-type=\\\"status\\\"[^>]*data-color=\\\"([^\\\"]+)\\\"[^>]*>([^<]+)<\\/span>",
       "replacement": "%%STATUS-$1-$2-STATUS%%",
       "flags": "gi"
+    },
+    {
+      "description": "Convert inline code spans to <code> tags",
+      "pattern": "<span[^>]*(?:class=\\\"[^\\\"]*\\bcode\\b[^\\\"]*\\\"|data-prosemirror-mark-name=\\\"code\\\")[^>]*>([\\s\\S]*?)<\\/span>",
+      "replacement": "<code>$1</code>",
+      "flags": "gi"
+    },
+    {
+      "description": "Normalize Confluence code block markup to plain <pre><code>",
+      "pattern": "<pre[^>]*class=\\\"[^\\\"]*\\bcode-block\\b[^\\\"]*\\\"[^>]*>[\\s\\S]*?<code[^>]*data-language=\\\"([^\\\"]*)\\\"[^>]*>([\\s\\S]*?)<\\/code>[\\s\\S]*?<\\/pre>",
+      "replacement": "<pre><code class=\\\"language-$1\\\">$2</code></pre>",
+      "flags": "gim"
     }
   ],
   "markdownPostprocessors": [
