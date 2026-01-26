@@ -136,14 +136,28 @@
           node.getAttribute("data-title") ||
           node.getAttribute("title") ||
           "Expand";
-        const innerHtml = node.innerHTML || "";
+        const isExpanded = node.getAttribute("data-expanded") !== "false";
         let innerMd = "";
-        if (innerHtml.trim()) {
-          innerMd = service.turndown(innerHtml).trim();
+        if (isExpanded) {
+          const clone = node.cloneNode(true);
+          clone
+            .querySelectorAll("[id^=\"expand-title-\"]")
+            .forEach((el) => el.remove());
+          clone
+            .querySelectorAll("button[aria-labelledby]")
+            .forEach((el) => el.remove());
+          const innerHtml = clone.innerHTML || "";
+          if (innerHtml.trim()) {
+            innerMd = service.turndown(innerHtml).trim();
+          }
         }
 
         const lines = [`(Expand Block - ${title})`];
-        if (innerMd) lines.push(innerMd);
+        if (!isExpanded) {
+          lines.push("*Block is collapsed*");
+        } else if (innerMd) {
+          lines.push(innerMd);
+        }
         lines.push("(End Expand Block)");
         return "\n\n" + lines.join("\n") + "\n\n";
       }
