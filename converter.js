@@ -140,7 +140,6 @@
         let innerMd = "";
         if (innerHtml.trim()) {
           innerMd = service.turndown(innerHtml).trim();
-          innerMd = innerMd.replace(/\[Image \d+\]/g, "Image Placeholder");
         }
 
         const lines = [`(Expand Block - ${title})`];
