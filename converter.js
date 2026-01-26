@@ -123,6 +123,46 @@
 
     addImagePlaceholderRule(service, options);
 
+    service.addRule("expandBlock", {
+      filter: function (node) {
+        if (!node || node.nodeType !== 1) return false;
+        return (
+          node.matches("[data-node-type=\"expand\"]") ||
+          node.matches("[data-prosemirror-node-name=\"expand\"]")
+        );
+      },
+      replacement: function (content, node) {
+        const title =
+          node.getAttribute("data-title") ||
+          node.getAttribute("title") ||
+          "Expand";
+        const isExpanded = node.getAttribute("data-expanded") !== "false";
+        let innerMd = "";
+        if (isExpanded) {
+          const clone = node.cloneNode(true);
+          clone
+            .querySelectorAll("[id^=\"expand-title-\"]")
+            .forEach((el) => el.remove());
+          clone
+            .querySelectorAll("button[aria-labelledby]")
+            .forEach((el) => el.remove());
+          const innerHtml = clone.innerHTML || "";
+          if (innerHtml.trim()) {
+            innerMd = service.turndown(innerHtml).trim();
+          }
+        }
+
+        const lines = [`(Expand Block - ${title})`];
+        if (!isExpanded) {
+          lines.push("*Block is collapsed*");
+        } else if (innerMd) {
+          lines.push(innerMd);
+        }
+        lines.push("(End Expand Block)");
+        return "\n\n" + lines.join("\n") + "\n\n";
+      }
+    });
+
     service.addRule("confluenceTable", {
       filter: "table",
       replacement: function (content, node) {
