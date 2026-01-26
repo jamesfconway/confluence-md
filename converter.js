@@ -123,6 +123,33 @@
 
     addImagePlaceholderRule(service, options);
 
+    service.addRule("expandBlock", {
+      filter: function (node) {
+        if (!node || node.nodeType !== 1) return false;
+        return (
+          node.matches("[data-node-type=\"expand\"]") ||
+          node.matches("[data-prosemirror-node-name=\"expand\"]")
+        );
+      },
+      replacement: function (content, node) {
+        const title =
+          node.getAttribute("data-title") ||
+          node.getAttribute("title") ||
+          "Expand";
+        const innerHtml = node.innerHTML || "";
+        let innerMd = "";
+        if (innerHtml.trim()) {
+          innerMd = service.turndown(innerHtml).trim();
+          innerMd = innerMd.replace(/\[Image \d+\]/g, "Image Placeholder");
+        }
+
+        const lines = [`(Expand Block - ${title})`];
+        if (innerMd) lines.push(innerMd);
+        lines.push("(End Expand Block)");
+        return "\n\n" + lines.join("\n") + "\n\n";
+      }
+    });
+
     service.addRule("confluenceTable", {
       filter: "table",
       replacement: function (content, node) {
