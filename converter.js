@@ -89,46 +89,15 @@
     });
   }
 
-  function applyRegexRules(text, rules = []) {
-    let out = text;
-    for (const r of rules) {
-      try {
-        const re = new RegExp(r.pattern, r.flags || "g");
-        out = out.replace(re, r.replacement);
-      } catch (err) {
-        console.error("Bad rule", r, err);
-      }
-    }
-    return out;
-  }
-
-  function createService({ baseUrl } = {}) {
-    const service = new TurndownService({
-      headingStyle: "atx",
-      bulletListMarker: "-",
-      codeBlockStyle: "fenced"
-    });
-    if (typeof turndownPluginGfm !== "undefined" && turndownPluginGfm?.gfm) {
-      service.use(turndownPluginGfm.gfm);
-    }
-
-    const options = {
-      currentOptions: {
-        includeLinks: true,
-        includeImagePlaceholders: true,
-        emojiNames: false
-      },
-      baseUrl: baseUrl || defaultBaseUrl()
-    };
-
-    addImagePlaceholderRule(service, options);
-
+  function addExpandRule(service) {
     service.addRule("expandBlock", {
       filter: function (node) {
         if (!node || node.nodeType !== 1) return false;
         return (
           node.matches("[data-node-type=\"expand\"]") ||
-          node.matches("[data-prosemirror-node-name=\"expand\"]")
+          node.matches("[data-prosemirror-node-name=\"expand\"]") ||
+          node.matches("[data-node-type=\"nestedExpand\"]") ||
+          node.matches("[data-prosemirror-node-name=\"nestedExpand\"]")
         );
       },
       replacement: function (content, node) {
@@ -162,6 +131,42 @@
         return "\n\n" + lines.join("\n") + "\n\n";
       }
     });
+  }
+
+  function applyRegexRules(text, rules = []) {
+    let out = text;
+    for (const r of rules) {
+      try {
+        const re = new RegExp(r.pattern, r.flags || "g");
+        out = out.replace(re, r.replacement);
+      } catch (err) {
+        console.error("Bad rule", r, err);
+      }
+    }
+    return out;
+  }
+
+  function createService({ baseUrl } = {}) {
+    const service = new TurndownService({
+      headingStyle: "atx",
+      bulletListMarker: "-",
+      codeBlockStyle: "fenced"
+    });
+    if (typeof turndownPluginGfm !== "undefined" && turndownPluginGfm?.gfm) {
+      service.use(turndownPluginGfm.gfm);
+    }
+
+    const options = {
+      currentOptions: {
+        includeLinks: true,
+        includeImagePlaceholders: true,
+        emojiNames: false
+      },
+      baseUrl: baseUrl || defaultBaseUrl()
+    };
+
+    addImagePlaceholderRule(service, options);
+    addExpandRule(service);
 
     service.addRule("confluenceTable", {
       filter: "table",
@@ -175,6 +180,7 @@
           cellTd.use(turndownPluginGfm.gfm);
         }
         addImagePlaceholderRule(cellTd, options);
+        addExpandRule(cellTd);
 
         function cellMarkdown(cell) {
           const html = cell.innerHTML || "";
