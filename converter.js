@@ -120,6 +120,10 @@
       },
       baseUrl: baseUrl || defaultBaseUrl()
     };
+    const mentionState = {
+      map: new Map(),
+      counter: 0
+    };
 
     addImagePlaceholderRule(service, options);
 
@@ -170,6 +174,23 @@
         if (innerMd) lines.push(innerMd);
         lines.push("(Panel End)");
         return "\n\n" + lines.join("\n") + "\n\n";
+    service.addRule("mentionPlaceholder", {
+      filter: function (node) {
+        if (!node || node.nodeType !== 1) return false;
+        return (
+          node.matches("[data-prosemirror-node-name=\"mention\"]") ||
+          node.matches("[data-mention-id]")
+        );
+      },
+      replacement: function (content, node) {
+        const mentionId = node.getAttribute("data-mention-id");
+        if (!mentionId) return "[User]";
+        if (!mentionState.map.has(mentionId)) {
+          mentionState.counter += 1;
+          mentionState.map.set(mentionId, mentionState.counter);
+        }
+        const index = mentionState.map.get(mentionId);
+        return `[User ${index}]`;
       }
     });
 
@@ -278,6 +299,8 @@
       if (!html) return "";
       const mergedOptions = { ...options.currentOptions, ...overrideOptions };
       options.currentOptions = mergedOptions;
+      mentionState.map = new Map();
+      mentionState.counter = 0;
 
       const activeRules = rules || EMPTY_RULES;
       const preprocessed = applyRegexRules(html, activeRules.htmlPreprocessors || []);
