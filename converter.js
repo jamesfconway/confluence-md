@@ -123,12 +123,64 @@
 
     addImagePlaceholderRule(service, options);
 
+    service.addRule("panel", {
+      filter: function (node) {
+        if (!node || node.nodeType !== 1) return false;
+        return (
+          node.matches("[data-prosemirror-node-name=\"panel\"]") ||
+          node.matches("[data-panel-type]")
+        );
+      },
+      replacement: function (content, node) {
+        const panelType = node.getAttribute("data-panel-type");
+        const icon =
+          node.getAttribute("data-panel-icon") ||
+          node.getAttribute("data-panel-icon-text");
+        const panelTypeLabels = {
+          info: "Info",
+          warning: "Warning",
+          error: "Error",
+          success: "Success",
+          note: "Note"
+        };
+        const normalizeLabel = (value) => {
+          if (!value) return "";
+          return value
+            .toString()
+            .replace(/[_-]+/g, " ")
+            .replace(/\s+/g, " ")
+            .trim()
+            .replace(/\b\w/g, (char) => char.toUpperCase());
+        };
+
+        let startLabel = "";
+        if (panelType && panelType !== "custom") {
+          startLabel = `${panelTypeLabels[panelType] || normalizeLabel(panelType)} Panel Start`;
+        } else {
+          const iconLabel = normalizeLabel(icon) || "Custom";
+          startLabel = `${iconLabel} Custom Panel Start`;
+        }
+
+        const contentNode =
+          node.querySelector("[data-panel-content=\"true\"]") || node;
+        const innerHtml = contentNode.innerHTML || "";
+        const innerMd = innerHtml.trim() ? service.turndown(innerHtml).trim() : "";
+
+        const lines = [`(${startLabel})`];
+        if (innerMd) lines.push(innerMd);
+        lines.push("(Panel End)");
+        return "\n\n" + lines.join("\n") + "\n\n";
+      }
+    });
+
     service.addRule("expandBlock", {
       filter: function (node) {
         if (!node || node.nodeType !== 1) return false;
         return (
           node.matches("[data-node-type=\"expand\"]") ||
-          node.matches("[data-prosemirror-node-name=\"expand\"]")
+          node.matches("[data-prosemirror-node-name=\"expand\"]") ||
+          node.matches("[data-node-type=\"nestedExpand\"]") ||
+          node.matches("[data-prosemirror-node-name=\"nestedExpand\"]")
         );
       },
       replacement: function (content, node) {
@@ -162,6 +214,42 @@
         return "\n\n" + lines.join("\n") + "\n\n";
       }
     });
+  }
+
+  function applyRegexRules(text, rules = []) {
+    let out = text;
+    for (const r of rules) {
+      try {
+        const re = new RegExp(r.pattern, r.flags || "g");
+        out = out.replace(re, r.replacement);
+      } catch (err) {
+        console.error("Bad rule", r, err);
+      }
+    }
+    return out;
+  }
+
+  function createService({ baseUrl } = {}) {
+    const service = new TurndownService({
+      headingStyle: "atx",
+      bulletListMarker: "-",
+      codeBlockStyle: "fenced"
+    });
+    if (typeof turndownPluginGfm !== "undefined" && turndownPluginGfm?.gfm) {
+      service.use(turndownPluginGfm.gfm);
+    }
+
+    const options = {
+      currentOptions: {
+        includeLinks: true,
+        includeImagePlaceholders: true,
+        emojiNames: false
+      },
+      baseUrl: baseUrl || defaultBaseUrl()
+    };
+
+    addImagePlaceholderRule(service, options);
+    addExpandRule(service);
 
     service.addRule("confluenceTable", {
       filter: "table",
@@ -175,6 +263,7 @@
           cellTd.use(turndownPluginGfm.gfm);
         }
         addImagePlaceholderRule(cellTd, options);
+        addExpandRule(cellTd);
 
         function cellMarkdown(cell) {
           const html = cell.innerHTML || "";
@@ -228,6 +317,8 @@
       if (!html) return "";
       const mergedOptions = { ...options.currentOptions, ...overrideOptions };
       options.currentOptions = mergedOptions;
+      mentionState.map = new Map();
+      mentionState.counter = 0;
 
       const activeRules = rules || EMPTY_RULES;
       const preprocessed = applyRegexRules(html, activeRules.htmlPreprocessors || []);
