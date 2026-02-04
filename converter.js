@@ -174,6 +174,8 @@
         if (innerMd) lines.push(innerMd);
         lines.push("(Panel End)");
         return "\n\n" + lines.join("\n") + "\n\n";
+      }
+    });
     service.addRule("mentionPlaceholder", {
       filter: function (node) {
         if (!node || node.nodeType !== 1) return false;
