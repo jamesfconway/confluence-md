@@ -89,7 +89,40 @@
     });
   }
 
-  function addExpandRule(service) {
+  function applyRegexRules(text, rules = []) {
+    let out = text;
+    for (const r of rules) {
+      try {
+        const re = new RegExp(r.pattern, r.flags || "g");
+        out = out.replace(re, r.replacement);
+      } catch (err) {
+        console.error("Bad rule", r, err);
+      }
+    }
+    return out;
+  }
+
+  function createService({ baseUrl } = {}) {
+    const service = new TurndownService({
+      headingStyle: "atx",
+      bulletListMarker: "-",
+      codeBlockStyle: "fenced"
+    });
+    if (typeof turndownPluginGfm !== "undefined" && turndownPluginGfm?.gfm) {
+      service.use(turndownPluginGfm.gfm);
+    }
+
+    const options = {
+      currentOptions: {
+        includeLinks: true,
+        includeImagePlaceholders: true,
+        emojiNames: false
+      },
+      baseUrl: baseUrl || defaultBaseUrl()
+    };
+
+    addImagePlaceholderRule(service, options);
+
     service.addRule("expandBlock", {
       filter: function (node) {
         if (!node || node.nodeType !== 1) return false;
@@ -234,6 +267,8 @@
       if (!html) return "";
       const mergedOptions = { ...options.currentOptions, ...overrideOptions };
       options.currentOptions = mergedOptions;
+      mentionState.map = new Map();
+      mentionState.counter = 0;
 
       const activeRules = rules || EMPTY_RULES;
       const preprocessed = applyRegexRules(html, activeRules.htmlPreprocessors || []);
