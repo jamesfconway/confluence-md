@@ -102,6 +102,30 @@
     return out;
   }
 
+  function countEasyMath(htmlString) {
+    const emptyCounts = { any: 0, block: 0, inline: 0 };
+    if (!htmlString || typeof htmlString !== "string") return emptyCounts;
+
+    const matches = htmlString.match(
+      /data-extension-key\s*=\s*(["'])\s*(easy-math[^"']*|eazy-math[^"']*)\1/gi
+    );
+    if (!matches) return emptyCounts;
+
+    const counts = { any: 0, block: 0, inline: 0 };
+    for (const match of matches) {
+      const keyMatch = /data-extension-key\s*=\s*(["'])\s*([^"']+)\1/i.exec(match);
+      if (!keyMatch) continue;
+      const key = keyMatch[2].toLowerCase().replace(/\s+/g, "");
+      counts.any += 1;
+      if (key.endsWith("-inline")) {
+        counts.inline += 1;
+      } else if (key.endsWith("-block") || key.endsWith("-block-l")) {
+        counts.block += 1;
+      }
+    }
+    return counts;
+  }
+
   function addExpandRule(service) {
     service.addRule("expandBlock", {
       filter: function (node) {
@@ -160,7 +184,8 @@
       currentOptions: {
         includeLinks: true,
         includeImagePlaceholders: true,
-        emojiNames: false
+        emojiNames: false,
+        debugLatex: false
       },
       baseUrl: baseUrl || defaultBaseUrl()
     };
@@ -271,25 +296,43 @@
     function isLatexExtensionNode(node) {
       if (!node || node.nodeType !== 1) return false;
 
-      const extensionType = (node.getAttribute("data-extension-type") || "")
+      const key = (node.getAttribute("data-extension-key") || "")
         .toLowerCase()
+        .replace(/\s+/g, "")
         .trim();
-      if (!extensionType.startsWith("com.atlassian.confluence.macro")) {
-        return false;
-      }
-
-      const key = (node.getAttribute("data-extension-key") || "").toLowerCase().trim();
-      return key === "easy-math-block" || key === "easy-math-block-l" || key === "easy-math-inline" || key === "eazy-math-inline";
+      return key.startsWith("easy-math") || key.startsWith("eazy-math");
     }
 
     service.addRule("latexMacros", {
       filter: function (node) {
-        return isLatexExtensionNode(node);
+        const isMatch = isLatexExtensionNode(node);
+        if (isMatch && options.currentOptions?.debugLatex) {
+          const key = (node.getAttribute("data-extension-key") || "").trim();
+          const extensionType = (node.getAttribute("data-extension-type") || "").trim();
+          const paramsLen = (node.getAttribute("data-parameters") || "").length;
+          console.log(
+            `[latex][match] key=${key} type=${extensionType} paramsLen=${paramsLen}`
+          );
+        }
+        return isMatch;
       },
       replacement: function (content, node) {
-        const key = (node.getAttribute("data-extension-key") || "").toLowerCase().trim();
+        const key = (node.getAttribute("data-extension-key") || "")
+          .toLowerCase()
+          .replace(/\s+/g, "")
+          .trim();
         const params = parseExtensionParameters(node);
         const latex = getLatexFromParameters(params);
+        if (options.currentOptions?.debugLatex) {
+          const latexPreview = latex.slice(0, 80);
+          console.log(
+            `[latex][extract] key=${key} latexLen=${latex.length} latexPreview=${latexPreview}`
+          );
+          if (!latex) {
+            const rawPreview = (node.getAttribute("data-parameters") || "").slice(0, 140);
+            console.warn(`[latex] EMPTY latex. rawPreview=${rawPreview}`);
+          }
+        }
         if (!latex) return "";
 
         if (key === "easy-math-inline" || key === "eazy-math-inline") {
@@ -441,7 +484,22 @@
       mentionState.counter = 0;
 
       const activeRules = rules || EMPTY_RULES;
+      if (mergedOptions.debugLatex) {
+        const inputCounts = countEasyMath(html);
+        console.log(
+          `[latex][input] macros: { any: ${inputCounts.any}, block: ${inputCounts.block}, inline: ${inputCounts.inline} }`
+        );
+      }
       const preprocessed = applyRegexRules(html, activeRules.htmlPreprocessors || []);
+      if (mergedOptions.debugLatex) {
+        const afterPreprocessCounts = countEasyMath(preprocessed);
+        console.log(
+          `[latex][after-preprocess] macros: { any: ${afterPreprocessCounts.any}, block: ${afterPreprocessCounts.block}, inline: ${afterPreprocessCounts.inline} }`
+        );
+        if (afterPreprocessCounts.any === 0) {
+          console.warn("[latex] macros disappeared during preprocessing");
+        }
+      }
 
       let md = "";
       try {
@@ -449,6 +507,11 @@
       } catch (err) {
         console.error("Turndown error:", err);
         md = "Error converting HTML to Markdown:\n" + err;
+      }
+
+      if (mergedOptions.debugLatex) {
+        const hasMathBlocks = /\$\$[\s\S]*?\$\$/m.test(md);
+        console.log(`[latex][after-turndown] has $$ blocks: ${hasMathBlocks}`);
       }
 
       md = applyRegexRules(md, activeRules.markdownPostprocessors || []);
