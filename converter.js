@@ -188,10 +188,12 @@
         return JSON.parse(raw);
       } catch (err) {
         try {
-          return JSON.parse(decoded);
+          const html = document.createElement("textarea");
+          html.innerHTML = raw;
+          return JSON.parse(html.value);
         } catch (decodeErr) {
           console.warn("Failed to parse macro data-parameters JSON", err);
-          return { __raw: decoded };
+          return { __raw: raw };
         }
       }
     }
