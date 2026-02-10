@@ -177,14 +177,64 @@
       try {
         return JSON.parse(raw);
       } catch (err) {
-        console.warn("Failed to parse macro data-parameters JSON", err);
-        return null;
+        try {
+          const html = document.createElement("textarea");
+          html.innerHTML = raw;
+          return JSON.parse(html.value);
+        } catch (decodeErr) {
+          console.warn("Failed to parse macro data-parameters JSON", err);
+          return { __raw: raw };
+        }
       }
+    }
+
+    function extractRawMacroValue(raw, key) {
+      if (!raw || !key) return "";
+
+      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const marker = new RegExp(
+        `\"${escapedKey}\"\\s*:\\s*\\{[^{}]*?\"value\"\\s*:\\s*\"`,
+        "i"
+      );
+      const match = marker.exec(raw);
+      if (!match) return "";
+
+      let i = match.index + match[0].length;
+      let value = "";
+      let escaped = false;
+      while (i < raw.length) {
+        const ch = raw[i];
+        if (escaped) {
+          value += ch;
+          escaped = false;
+          i += 1;
+          continue;
+        }
+        if (ch === "\\") {
+          value += ch;
+          escaped = true;
+          i += 1;
+          continue;
+        }
+        if (ch === '"') break;
+        value += ch;
+        i += 1;
+      }
+
+      return value.trim();
     }
 
     function getLatexFromParameters(params) {
       const macroParams = params?.macroParams;
-      if (!macroParams) return "";
+      if (!macroParams) {
+        return (
+          extractRawMacroValue(params?.__raw, "body") ||
+          extractRawMacroValue(params?.__raw, "__bodyContent") ||
+          ""
+        )
+          .toString()
+          .trim();
+      }
 
       return (
         macroParams.body?.value ||
