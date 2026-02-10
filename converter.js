@@ -171,37 +171,95 @@
 
     addImagePlaceholderRule(service, options);
 
-    function parseExtensionParameters(node) {
-      const raw = node.getAttribute("data-parameters");
-      if (!raw) return null;
-      try {
-        return JSON.parse(raw);
-      } catch (err) {
-        console.warn("Failed to parse macro data-parameters JSON", err);
-        return null;
+    function decodeHtmlEntities(raw) {
+      if (!raw) return "";
+
+      if (typeof document !== "undefined" && document.createElement) {
+        const textarea = document.createElement("textarea");
+        textarea.innerHTML = raw;
+        return textarea.value;
       }
+
+      return raw
+        .replace(/&quot;/gi, '"')
+        .replace(/&#39;|&apos;/gi, "'")
+        .replace(/&lt;/gi, "<")
+        .replace(/&gt;/gi, ">")
+        .replace(/&amp;/gi, "&")
+        .replace(/&#(\d+);/g, function (_match, dec) {
+          const code = Number.parseInt(dec, 10);
+          if (Number.isNaN(code)) return _match;
+          return String.fromCodePoint(code);
+        })
+        .replace(/&#x([0-9a-f]+);/gi, function (_match, hex) {
+          const code = Number.parseInt(hex, 16);
+          if (Number.isNaN(code)) return _match;
+          return String.fromCodePoint(code);
+        });
     }
 
-    function getLatexFromParameters(params) {
-      const macroParams = params?.macroParams;
-      if (!macroParams) return "";
+    function extractQuotedTokenValue(text, startIndex) {
+      if (!text || startIndex < 0 || startIndex >= text.length) return "";
 
-      return (
-        macroParams.body?.value ||
-        macroParams.__bodyContent?.value ||
-        ""
-      )
-        .toString()
+      let i = startIndex;
+      let value = "";
+      while (i < text.length) {
+        const ch = text[i];
+        if (ch === '"') {
+          let slashCount = 0;
+          let j = i - 1;
+          while (j >= startIndex && text[j] === "\\") {
+            slashCount += 1;
+            j -= 1;
+          }
+          if (slashCount % 2 === 0) break;
+        }
+        value += ch;
+        i += 1;
+      }
+
+      return value
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, "\\")
         .trim();
+    }
+
+    function extractLatexTokenByKey(rawAttr, keyName) {
+      if (!rawAttr || !keyName) return "";
+
+      const keyEscaped = keyName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const marker = new RegExp(
+        `"${keyEscaped}"\\s*:\\s*\\{[\\s\\S]*?"value"\\s*:\\s*"`,
+        "i"
+      );
+      const match = marker.exec(rawAttr);
+      if (!match) return "";
+
+      const start = match.index + match[0].length;
+      return extractQuotedTokenValue(rawAttr, start);
+    }
+
+    function getLatexFromNode(node) {
+      const rawAttr = node.getAttribute("data-parameters") || "";
+      const decoded = decodeHtmlEntities(rawAttr);
+      return (
+        extractLatexTokenByKey(decoded, "body") ||
+        extractLatexTokenByKey(decoded, "__bodyContent") ||
+        ""
+      ).trim();
     }
 
     function isLatexExtensionNode(node) {
       if (!node || node.nodeType !== 1) return false;
-      if (node.getAttribute("data-extension-type") !== "com.atlassian.confluence.macro.core") {
+
+      const extensionType = (node.getAttribute("data-extension-type") || "")
+        .toLowerCase()
+        .trim();
+      if (!extensionType.startsWith("com.atlassian.confluence.macro")) {
         return false;
       }
 
-      const key = (node.getAttribute("data-extension-key") || "").toLowerCase();
+      const key = (node.getAttribute("data-extension-key") || "").toLowerCase().trim();
       return key === "easy-math-block" || key === "easy-math-block-l" || key === "easy-math-inline" || key === "eazy-math-inline";
     }
 
@@ -210,9 +268,8 @@
         return isLatexExtensionNode(node);
       },
       replacement: function (content, node) {
-        const key = (node.getAttribute("data-extension-key") || "").toLowerCase();
-        const params = parseExtensionParameters(node);
-        const latex = getLatexFromParameters(params);
+        const key = (node.getAttribute("data-extension-key") || "").toLowerCase().trim();
+        const latex = getLatexFromNode(node);
         if (!latex) return "";
 
         if (key === "easy-math-inline" || key === "eazy-math-inline") {
