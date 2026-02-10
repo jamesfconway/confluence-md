@@ -174,17 +174,75 @@
     function parseExtensionParameters(node) {
       const raw = node.getAttribute("data-parameters");
       if (!raw) return null;
+
+      let decoded = raw;
+      try {
+        const html = document.createElement("textarea");
+        html.innerHTML = raw;
+        decoded = html.value;
+      } catch (decodeErr) {
+        decoded = raw;
+      }
+
       try {
         return JSON.parse(raw);
       } catch (err) {
-        console.warn("Failed to parse macro data-parameters JSON", err);
-        return null;
+        try {
+          return JSON.parse(decoded);
+        } catch (decodeErr) {
+          console.warn("Failed to parse macro data-parameters JSON", err);
+          return { __raw: decoded };
+        }
       }
+    }
+
+    function extractRawMacroValue(raw, key) {
+      if (!raw || !key) return "";
+
+      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const marker = new RegExp(
+        `\"${escapedKey}\"\\s*:\\s*\\{[^{}]*?\"value\"\\s*:\\s*\"`,
+        "i"
+      );
+      const match = marker.exec(raw);
+      if (!match) return "";
+
+      let i = match.index + match[0].length;
+      let value = "";
+      let escaped = false;
+      while (i < raw.length) {
+        const ch = raw[i];
+        if (escaped) {
+          value += ch;
+          escaped = false;
+          i += 1;
+          continue;
+        }
+        if (ch === "\\") {
+          value += ch;
+          escaped = true;
+          i += 1;
+          continue;
+        }
+        if (ch === '"') break;
+        value += ch;
+        i += 1;
+      }
+
+      return value.trim();
     }
 
     function getLatexFromParameters(params) {
       const macroParams = params?.macroParams;
-      if (!macroParams) return "";
+      if (!macroParams) {
+        return (
+          extractRawMacroValue(params?.__raw, "body") ||
+          extractRawMacroValue(params?.__raw, "__bodyContent") ||
+          ""
+        )
+          .toString()
+          .trim();
+      }
 
       return (
         macroParams.body?.value ||
@@ -197,11 +255,15 @@
 
     function isLatexExtensionNode(node) {
       if (!node || node.nodeType !== 1) return false;
-      if (node.getAttribute("data-extension-type") !== "com.atlassian.confluence.macro.core") {
+
+      const extensionType = (node.getAttribute("data-extension-type") || "")
+        .toLowerCase()
+        .trim();
+      if (!extensionType.startsWith("com.atlassian.confluence.macro")) {
         return false;
       }
 
-      const key = (node.getAttribute("data-extension-key") || "").toLowerCase();
+      const key = (node.getAttribute("data-extension-key") || "").toLowerCase().trim();
       return key === "easy-math-block" || key === "easy-math-block-l" || key === "easy-math-inline" || key === "eazy-math-inline";
     }
 
@@ -210,7 +272,7 @@
         return isLatexExtensionNode(node);
       },
       replacement: function (content, node) {
-        const key = (node.getAttribute("data-extension-key") || "").toLowerCase();
+        const key = (node.getAttribute("data-extension-key") || "").toLowerCase().trim();
         const params = parseExtensionParameters(node);
         const latex = getLatexFromParameters(params);
         if (!latex) return "";
