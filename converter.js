@@ -202,7 +202,7 @@
       }
 
       const key = (node.getAttribute("data-extension-key") || "").toLowerCase();
-      return key === "easy-math-block" || key === "easy-math-block-l" || key === "eazy-math-inline";
+      return key === "easy-math-block" || key === "easy-math-block-l" || key === "easy-math-inline" || key === "eazy-math-inline";
     }
 
     service.addRule("latexMacros", {
@@ -215,7 +215,7 @@
         const latex = getLatexFromParameters(params);
         if (!latex) return "";
 
-        if (key === "eazy-math-inline") {
+        if (key === "easy-math-inline" || key === "eazy-math-inline") {
           return `$${latex}$`;
         }
 
