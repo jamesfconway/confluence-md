@@ -174,6 +174,16 @@
     function parseExtensionParameters(node) {
       const raw = node.getAttribute("data-parameters");
       if (!raw) return null;
+
+      let decoded = raw;
+      try {
+        const html = document.createElement("textarea");
+        html.innerHTML = raw;
+        decoded = html.value;
+      } catch (decodeErr) {
+        decoded = raw;
+      }
+
       try {
         return JSON.parse(raw);
       } catch (err) {
@@ -247,11 +257,15 @@
 
     function isLatexExtensionNode(node) {
       if (!node || node.nodeType !== 1) return false;
-      if (node.getAttribute("data-extension-type") !== "com.atlassian.confluence.macro.core") {
+
+      const extensionType = (node.getAttribute("data-extension-type") || "")
+        .toLowerCase()
+        .trim();
+      if (!extensionType.startsWith("com.atlassian.confluence.macro")) {
         return false;
       }
 
-      const key = (node.getAttribute("data-extension-key") || "").toLowerCase();
+      const key = (node.getAttribute("data-extension-key") || "").toLowerCase().trim();
       return key === "easy-math-block" || key === "easy-math-block-l" || key === "easy-math-inline" || key === "eazy-math-inline";
     }
 
@@ -260,7 +274,7 @@
         return isLatexExtensionNode(node);
       },
       replacement: function (content, node) {
-        const key = (node.getAttribute("data-extension-key") || "").toLowerCase();
+        const key = (node.getAttribute("data-extension-key") || "").toLowerCase().trim();
         const params = parseExtensionParameters(node);
         const latex = getLatexFromParameters(params);
         if (!latex) return "";
