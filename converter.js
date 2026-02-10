@@ -171,61 +171,80 @@
 
     addImagePlaceholderRule(service, options);
 
-    function decodeHtmlEntities(raw) {
-      if (!raw) return "";
+    function parseExtensionParameters(node) {
+      const raw = node.getAttribute("data-parameters");
+      if (!raw) return null;
 
-      if (typeof document !== "undefined" && document.createElement) {
-        const textarea = document.createElement("textarea");
-        textarea.innerHTML = raw;
-        return textarea.value;
+      let decoded = raw;
+      try {
+        const html = document.createElement("textarea");
+        html.innerHTML = raw;
+        decoded = html.value;
+      } catch (decodeErr) {
+        decoded = raw;
       }
 
-      return raw
-        .replace(/&quot;/gi, '"')
-        .replace(/&#39;|&apos;/gi, "'")
-        .replace(/&lt;/gi, "<")
-        .replace(/&gt;/gi, ">")
-        .replace(/&amp;/gi, "&")
-        .replace(/&#(\d+);/g, function (_match, dec) {
-          const code = Number.parseInt(dec, 10);
-          if (Number.isNaN(code)) return _match;
-          return String.fromCodePoint(code);
-        })
-        .replace(/&#x([0-9a-f]+);/gi, function (_match, hex) {
-          const code = Number.parseInt(hex, 16);
-          if (Number.isNaN(code)) return _match;
-          return String.fromCodePoint(code);
-        });
+      try {
+        return JSON.parse(raw);
+      } catch (err) {
+        try {
+          const html = document.createElement("textarea");
+          html.innerHTML = raw;
+          return JSON.parse(html.value);
+        } catch (decodeErr) {
+          console.warn("Failed to parse macro data-parameters JSON", err);
+          return { __raw: raw };
+        }
+      }
     }
 
-    function extractQuotedTokenValue(text, startIndex) {
-      if (!text || startIndex < 0 || startIndex >= text.length) return "";
+    function extractRawMacroValue(raw, key) {
+      if (!raw || !key) return "";
 
-      let i = startIndex;
+      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const marker = new RegExp(
+        `\"${escapedKey}\"\\s*:\\s*\\{[^{}]*?\"value\"\\s*:\\s*\"`,
+        "i"
+      );
+      const match = marker.exec(raw);
+      if (!match) return "";
+
+      let i = match.index + match[0].length;
       let value = "";
-      while (i < text.length) {
-        const ch = text[i];
-        if (ch === '"') {
-          let slashCount = 0;
-          let j = i - 1;
-          while (j >= startIndex && text[j] === "\\") {
-            slashCount += 1;
-            j -= 1;
-          }
-          if (slashCount % 2 === 0) break;
+      let escaped = false;
+      while (i < raw.length) {
+        const ch = raw[i];
+        if (escaped) {
+          value += ch;
+          escaped = false;
+          i += 1;
+          continue;
         }
+        if (ch === "\\") {
+          value += ch;
+          escaped = true;
+          i += 1;
+          continue;
+        }
+        if (ch === '"') break;
         value += ch;
         i += 1;
       }
 
-      return value
-        .replace(/\\"/g, '"')
-        .replace(/\\\\/g, "\\")
-        .trim();
+      return value.trim();
     }
 
-    function extractLatexTokenByKey(rawAttr, keyName) {
-      if (!rawAttr || !keyName) return "";
+    function getLatexFromParameters(params) {
+      const macroParams = params?.macroParams;
+      if (!macroParams) {
+        return (
+          extractRawMacroValue(params?.__raw, "body") ||
+          extractRawMacroValue(params?.__raw, "__bodyContent") ||
+          ""
+        )
+          .toString()
+          .trim();
+      }
 
       const keyEscaped = keyName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const marker = new RegExp(
@@ -269,7 +288,8 @@
       },
       replacement: function (content, node) {
         const key = (node.getAttribute("data-extension-key") || "").toLowerCase().trim();
-        const latex = getLatexFromNode(node);
+        const params = parseExtensionParameters(node);
+        const latex = getLatexFromParameters(params);
         if (!latex) return "";
 
         if (key === "easy-math-inline" || key === "eazy-math-inline") {
