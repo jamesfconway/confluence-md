@@ -171,6 +171,58 @@
 
     addImagePlaceholderRule(service, options);
 
+    function parseExtensionParameters(node) {
+      const raw = node.getAttribute("data-parameters");
+      if (!raw) return null;
+      try {
+        return JSON.parse(raw);
+      } catch (err) {
+        console.warn("Failed to parse macro data-parameters JSON", err);
+        return null;
+      }
+    }
+
+    function getLatexFromParameters(params) {
+      const macroParams = params?.macroParams;
+      if (!macroParams) return "";
+
+      return (
+        macroParams.body?.value ||
+        macroParams.__bodyContent?.value ||
+        ""
+      )
+        .toString()
+        .trim();
+    }
+
+    function isLatexExtensionNode(node) {
+      if (!node || node.nodeType !== 1) return false;
+      if (node.getAttribute("data-extension-type") !== "com.atlassian.confluence.macro.core") {
+        return false;
+      }
+
+      const key = (node.getAttribute("data-extension-key") || "").toLowerCase();
+      return key === "easy-math-block" || key === "easy-math-block-l" || key === "eazy-math-inline";
+    }
+
+    service.addRule("latexMacros", {
+      filter: function (node) {
+        return isLatexExtensionNode(node);
+      },
+      replacement: function (content, node) {
+        const key = (node.getAttribute("data-extension-key") || "").toLowerCase();
+        const params = parseExtensionParameters(node);
+        const latex = getLatexFromParameters(params);
+        if (!latex) return "";
+
+        if (key === "eazy-math-inline") {
+          return `$${latex}$`;
+        }
+
+        return `\n\n$$\n${latex}\n$$\n\n`;
+      }
+    });
+
     service.addRule("panel", {
       filter: function (node) {
         if (!node || node.nodeType !== 1) return false;
