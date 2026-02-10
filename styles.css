@@ -37,6 +37,7 @@ header {
   position: sticky;
   top: 0;
   z-index: 10;
+  gap: 0.75rem;
 }
 
 h1 {
@@ -58,43 +59,48 @@ h2 {
   margin: 0;
 }
 
-.pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.15rem 0.45rem;
-  border-radius: 999px;
-  background: rgba(37, 99, 235, 0.15);
-  color: #93c5fd;
-  font-size: 0.75rem;
-  font-weight: 600;
-  margin-right: 0.5rem;
-}
-
 .title {
   display: flex;
   align-items: center;
   gap: 0.4rem;
 }
 
-.tabs {
-  display: flex;
-  gap: 0.4rem;
-}
-
-.tab {
-  border: 1px solid var(--border);
-  background: transparent;
-  padding: 0.35rem 0.75rem;
-  cursor: pointer;
-  border-radius: 10px;
-  font-size: 0.9rem;
-  color: var(--muted);
-}
-
-.tab.active {
-  background: rgba(37, 99, 235, 0.12);
+.meta {
+  position: relative;
+  font-size: 0.75rem;
   color: #bfdbfe;
-  border-color: rgba(37, 99, 235, 0.5);
+  border: 1px solid rgba(37, 99, 235, 0.35);
+  background: rgba(37, 99, 235, 0.12);
+  border-radius: 10px;
+  padding: 0.35rem 0.6rem;
+  cursor: help;
+  max-width: 55%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta-tooltip {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 30;
+  background: #0b1224;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  width: max-content;
+  max-width: 320px;
+  padding: 0.5rem 0.65rem;
+  color: var(--text);
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.meta:hover .meta-tooltip,
+.meta:focus-within .meta-tooltip {
+  display: block;
 }
 
 main {
@@ -105,13 +111,9 @@ main {
 }
 
 .panel {
-  display: none;
+  display: block;
   height: 100%;
   padding: 1rem;
-}
-
-.panel.active {
-  display: block;
 }
 
 .panel-grid {
@@ -255,6 +257,10 @@ textarea {
 .code-panel__header {
   padding: 0.5rem 0.75rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .code-panel__body {
@@ -299,6 +305,11 @@ button.secondary {
   font-size: 0.9rem;
 }
 
+button.secondary.compact {
+  padding: 0.35rem 0.55rem;
+  font-size: 0.8rem;
+}
+
 button.primary:hover {
   background: var(--accent-strong);
 }
@@ -328,11 +339,6 @@ button.secondary:hover {
   cursor: pointer;
 }
 
-.notes-card {
-  border-style: dashed;
-  color: var(--muted);
-}
-
 .muted {
   color: var(--muted);
   margin: 0.15rem 0 0;
@@ -343,6 +349,10 @@ button.secondary:hover {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
+  }
+
+  .meta {
+    max-width: 100%;
   }
 
   .card-header {

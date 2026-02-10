@@ -5,19 +5,15 @@ const htmlHighlight = document.getElementById("htmlHighlight");
 const markdownView = document.getElementById("markdownView");
 const statusEl = document.getElementById("status");
 const markdownFeedback = document.getElementById("markdownFeedback");
-const rulesArea = document.getElementById("rulesArea");
-const rulesStatus = document.getElementById("rulesStatus");
 const clearPasteBtn = document.getElementById("clearPaste");
 const pasteFromClipboardBtn = document.getElementById("pasteFromClipboard");
 const copyMarkdownBtn = document.getElementById("copyMarkdown");
+const copyHtmlBtn = document.getElementById("copyHtml");
 const includeLinksInput = document.getElementById("includeLinks");
 const includeImagePlaceholdersInput = document.getElementById("includeImagePlaceholders");
 const emojiNamesInput = document.getElementById("emojiNames");
-const tabButtons = document.querySelectorAll(".tab");
-const panels = {
-  convert: document.getElementById("panel-convert"),
-  settings: document.getElementById("panel-settings")
-};
+const buildMetaText = document.getElementById("buildMetaText");
+const buildMetaTooltip = document.getElementById("buildMetaTooltip");
 
 const converterService = Converter.createService();
 let currentRules = { ...Converter.EMPTY_RULES };
@@ -25,6 +21,15 @@ let lastHtml = "";
 let inlineFeedbackTimeout;
 
 const STORAGE_KEY = "converterOptions";
+
+const BUILD_INFO = {
+  updatedAtUtc: "2026-02-10T12:59:25Z",
+  recentCommits: [
+    "Merge pull request #19 from jamesfconway/codex/add-support-for-latex-blocks",
+    "Add support for Confluence Easy Math LaTeX macros",
+    "Merge pull request #18 from jamesfconway/codex/add-expand-support-in-tables",
+  ]
+};
 
 function renderMarkdown(optionsOverride = {}) {
   if (!lastHtml) return;
@@ -60,6 +65,37 @@ function resetFeedback() {
   setStatus("");
 }
 
+function formatLastUpdated(isoDate) {
+  const parsed = new Date(isoDate);
+  if (Number.isNaN(parsed.getTime())) {
+    return `Updated ${isoDate}`;
+  }
+
+  try {
+    return `Updated ${parsed.toLocaleString()}`;
+  } catch (err) {
+    console.warn("Could not format date in local timezone", err);
+    return `Updated ${parsed.toISOString()}`;
+  }
+}
+
+function renderBuildMeta() {
+  if (!buildMetaText || !buildMetaTooltip) return;
+
+  const version = chrome?.runtime?.getManifest?.()?.version || "unknown";
+  const updatedText = formatLastUpdated(BUILD_INFO.updatedAtUtc);
+  buildMetaText.textContent = `Version ${version} · ${updatedText}`;
+
+  if (BUILD_INFO.recentCommits.length > 0) {
+    buildMetaTooltip.innerHTML = BUILD_INFO.recentCommits
+      .slice(0, 3)
+      .map((message, index) => `<div>${index + 1}. ${message}</div>`)
+      .join("");
+  } else {
+    buildMetaTooltip.textContent = "No recent commit messages available.";
+  }
+}
+
 async function persistOptions() {
   if (!chrome?.storage?.sync) return;
   const payload = {
@@ -91,11 +127,7 @@ async function loadStoredOptions() {
 }
 
 async function loadRulesFromFile() {
-  rulesArea.value = "Loading rules...";
   currentRules = await Converter.loadRules(RULES_PATH);
-  rulesArea.value = JSON.stringify(currentRules, null, 2);
-  rulesStatus.textContent = `Loaded rules from ${RULES_PATH}.`;
-  setTimeout(() => (rulesStatus.textContent = ""), 2000);
 }
 
 function formatHtml(html) {
@@ -205,13 +237,11 @@ clearPasteBtn?.addEventListener("click", () => {
   setInlineFeedback("");
 });
 
-async function copyMarkdown() {
-  if (!markdownView) return false;
-
+async function copyTextToClipboard(textValue, successMessage) {
   try {
     if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(markdownView.value);
-      setStatus("Markdown copied to clipboard.");
+      await navigator.clipboard.writeText(textValue);
+      setStatus(successMessage);
       setInlineFeedback("Copied to clipboard.", "success");
       return true;
     }
@@ -219,20 +249,18 @@ async function copyMarkdown() {
     console.warn("Clipboard write failed", err);
   }
 
+  const temp = document.createElement("textarea");
+  temp.value = textValue;
+  temp.setAttribute("readonly", "readonly");
+  temp.style.position = "absolute";
+  temp.style.left = "-9999px";
+  document.body.appendChild(temp);
+  temp.select();
   try {
-    const selection = document.getSelection();
-    const previousRange = selection?.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
-    markdownView.focus();
-    markdownView.select();
     const ok = document.execCommand?.("copy");
-    if (previousRange) {
-      selection.removeAllRanges();
-      selection.addRange(previousRange);
-    } else {
-      markdownView.setSelectionRange(markdownView.value.length, markdownView.value.length);
-    }
+    document.body.removeChild(temp);
     if (ok) {
-      setStatus("Markdown copied to clipboard.");
+      setStatus(successMessage);
       setInlineFeedback("Copied. Use Ctrl/Cmd+V to paste.", "success");
       return true;
     }
@@ -240,12 +268,27 @@ async function copyMarkdown() {
     console.warn("Fallback copy failed", err);
   }
 
-  setStatus("Could not copy markdown. Clipboard unavailable.");
+  if (temp.parentNode) {
+    document.body.removeChild(temp);
+  }
+
+  setStatus("Could not copy. Clipboard unavailable.");
   setInlineFeedback("Copy failed. Use Ctrl/Cmd+C.", "error");
   return false;
 }
 
+async function copyMarkdown() {
+  if (!markdownView) return false;
+  return copyTextToClipboard(markdownView.value, "Markdown copied to clipboard.");
+}
+
+async function copyHtml() {
+  if (!htmlView) return false;
+  return copyTextToClipboard(htmlView.value, "Raw HTML copied to clipboard.");
+}
+
 copyMarkdownBtn?.addEventListener("click", copyMarkdown);
+copyHtmlBtn?.addEventListener("click", copyHtml);
 
 [includeLinksInput, includeImagePlaceholdersInput, emojiNamesInput].forEach((input) => {
   input?.addEventListener("change", () => {
@@ -254,18 +297,8 @@ copyMarkdownBtn?.addEventListener("click", copyMarkdown);
   });
 });
 
-tabButtons.forEach((btn) => {
-  btn.addEventListener("click", () => {
-    const target = btn.dataset.tab;
-    tabButtons.forEach((b) => b.classList.remove("active"));
-    btn.classList.add("active");
-    Object.entries(panels).forEach(([name, el]) => {
-      el.classList.toggle("active", name === target);
-    });
-  });
-});
-
 async function bootstrap() {
+  renderBuildMeta();
   await loadStoredOptions();
   await loadRulesFromFile();
   setStatus("Waiting for content…");

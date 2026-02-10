@@ -18,12 +18,11 @@
 <body>
   <header>
     <div class="title">
-      <span class="pill">Extension</span>
       <h1>Confluence → Markdown Converter</h1>
     </div>
-    <div class="tabs">
-      <button class="tab active" data-tab="convert">Convert</button>
-      <button class="tab" data-tab="settings">Settings</button>
+    <div class="meta" id="buildMeta" title="Loading recent commits...">
+      <span id="buildMetaText">Version — · Updated —</span>
+      <div class="meta-tooltip" id="buildMetaTooltip" role="tooltip" aria-live="polite"></div>
     </div>
   </header>
 
@@ -73,6 +72,7 @@
                 <div class="code-panel">
                   <div class="code-panel__header">
                     <span class="muted">Formatted &amp; highlighted</span>
+                    <button class="secondary compact" id="copyHtml">Copy HTML</button>
                   </div>
                   <pre class="code-panel__body"><code id="htmlHighlight" class="language-html"></code></pre>
                 </div>
@@ -115,24 +115,6 @@
               </div>
             </details>
           </div>
-        </div>
-
-        <div class="card notes-card">
-          <p class="eyebrow">Notes</p>
-          <p class="muted">If something looks wrong, describe it to ChatGPT and update <code>rules.json</code>. Reload, then paste again.</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel" id="panel-settings">
-      <div class="panel-grid">
-        <div class="card">
-          <p class="eyebrow">Rules JSON (read-only)</p>
-          <p class="muted">Rules are stored in <code>rules.json</code>. Edit that file and reload this page to apply changes.</p>
-          <div class="controls">
-            <span id="rulesStatus"></span>
-          </div>
-          <textarea id="rulesArea" spellcheck="false" readonly></textarea>
         </div>
       </div>
     </section>
