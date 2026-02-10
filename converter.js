@@ -246,13 +246,26 @@
           .trim();
       }
 
+      const keyEscaped = keyName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const marker = new RegExp(
+        `"${keyEscaped}"\\s*:\\s*\\{[\\s\\S]*?"value"\\s*:\\s*"`,
+        "i"
+      );
+      const match = marker.exec(rawAttr);
+      if (!match) return "";
+
+      const start = match.index + match[0].length;
+      return extractQuotedTokenValue(rawAttr, start);
+    }
+
+    function getLatexFromNode(node) {
+      const rawAttr = node.getAttribute("data-parameters") || "";
+      const decoded = decodeHtmlEntities(rawAttr);
       return (
-        macroParams.body?.value ||
-        macroParams.__bodyContent?.value ||
+        extractLatexTokenByKey(decoded, "body") ||
+        extractLatexTokenByKey(decoded, "__bodyContent") ||
         ""
-      )
-        .toString()
-        .trim();
+      ).trim();
     }
 
     function isLatexExtensionNode(node) {
