@@ -23,6 +23,7 @@ let inlineFeedbackTimeout;
 const STORAGE_KEY = "converterOptions";
 
 const BUILD_INFO = {
+  version: "0.0.0",
   updatedAtUtc: "2026-02-10T12:59:25Z",
   recentCommits: [
     "Merge pull request #19 from jamesfconway/codex/add-support-for-latex-blocks",
@@ -82,8 +83,15 @@ function formatLastUpdated(isoDate) {
 function renderBuildMeta() {
   if (!buildMetaText || !buildMetaTooltip) return;
 
-  const version = chrome?.runtime?.getManifest?.()?.version || "unknown";
-  const updatedText = formatLastUpdated(BUILD_INFO.updatedAtUtc);
+  let runtimeVersion = "";
+  try {
+    runtimeVersion = globalThis.chrome?.runtime?.getManifest?.()?.version || "";
+  } catch (err) {
+    console.warn("Could not read extension manifest version", err);
+  }
+
+  const version = runtimeVersion || BUILD_INFO.version || "unknown";
+  const updatedText = formatLastUpdated(BUILD_INFO.updatedAtUtc || "unknown");
   buildMetaText.textContent = `Version ${version} · ${updatedText}`;
 
   if (BUILD_INFO.recentCommits.length > 0) {
