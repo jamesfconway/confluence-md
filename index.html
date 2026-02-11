@@ -10,6 +10,9 @@
   />
   <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
   <script src="https://unpkg.com/turndown-plugin-gfm/dist/turndown-plugin-gfm.js"></script>
+  <script src="converter/rules/loader.js"></script>
+  <script src="converter/plugins/defaults.js"></script>
+  <script src="converter/pipeline/stages.js"></script>
   <script src="converter.js"></script>
   <script src="https://unpkg.com/prettier@2.8.8/standalone.js"></script>
   <script src="https://unpkg.com/prettier@2.8.8/parser-html.js"></script>
@@ -19,10 +22,6 @@
   <header>
     <div class="title">
       <h1>Confluence → Markdown Converter</h1>
-    </div>
-    <div class="meta" id="buildMeta" title="Loading recent commits...">
-      <span id="buildMetaText">Version — · Updated —</span>
-      <div class="meta-tooltip" id="buildMetaTooltip" role="tooltip" aria-live="polite"></div>
     </div>
   </header>
 

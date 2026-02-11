@@ -1,0 +1,7 @@
+{
+  "id": "html.003",
+  "description": "Strip table colgroup definitions",
+  "pattern": "<colgroup[\\s\\S]*?<\\/colgroup>",
+  "replacement": "",
+  "flags": "gi"
+}

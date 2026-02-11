@@ -1,0 +1,7 @@
+{
+  "id": "html.001",
+  "description": "Unwrap <mark> annotation tags",
+  "pattern": "<mark[^>]*>([\\s\\S]*?)<\\/mark>",
+  "replacement": "$1",
+  "flags": "gi"
+}

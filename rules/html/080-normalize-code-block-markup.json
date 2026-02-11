@@ -1,0 +1,7 @@
+{
+  "id": "html.008",
+  "description": "Normalize Confluence code block markup to plain <pre><code>",
+  "pattern": "<pre[^>]*class=\\\"[^\\\"]*\\bcode-block\\b[^\\\"]*\\\"[^>]*>[\\s\\S]*?<code[^>]*data-language=\\\"([^\\\"]*)\\\"[^>]*>([\\s\\S]*?)<\\/code>[\\s\\S]*?<\\/pre>",
+  "replacement": "<pre><code class=\\\"language-$1\\\">$2</code></pre>",
+  "flags": "gim"
+}

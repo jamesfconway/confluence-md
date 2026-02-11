@@ -1,0 +1,7 @@
+{
+  "id": "html.007",
+  "description": "Convert inline code spans to <code> tags",
+  "pattern": "<span[^>]*(?:class=\\\"[^\\\"]*\\bcode\\b[^\\\"]*\\\"|data-prosemirror-mark-name=\\\"code\\\")[^>]*>([\\s\\S]*?)<\\/span>",
+  "replacement": "<code>$1</code>",
+  "flags": "gi"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "html.006",
+  "description": "Extract inline status node (editor) with colour + text",
+  "pattern": "<span[^>]*data-node-type=\\\"status\\\"[^>]*data-color=\\\"([^\\\"]+)\\\"[^>]*>([^<]+)<\\/span>",
+  "replacement": "%%STATUS-$1-$2-STATUS%%",
+  "flags": "gi"
+}
