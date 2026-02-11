@@ -1,0 +1,7 @@
+{
+  "id": "html.005",
+  "description": "Extract status lozenge with colour + text",
+  "pattern": "<span[^>]*class=\\\"status-lozenge-span[^>]*data-color=\\\"([^\\\"]+)\\\"[^>]*>[\\s\\S]*?<span[^>]*>([^<]+)<\\/span>[\\s\\S]*?<\\/span>",
+  "replacement": "%%STATUS-$1-$2-STATUS%%",
+  "flags": "gi"
+}

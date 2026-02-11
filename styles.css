@@ -65,43 +65,6 @@ h2 {
   gap: 0.4rem;
 }
 
-.meta {
-  position: relative;
-  font-size: 0.75rem;
-  color: #bfdbfe;
-  border: 1px solid rgba(37, 99, 235, 0.35);
-  background: rgba(37, 99, 235, 0.12);
-  border-radius: 10px;
-  padding: 0.35rem 0.6rem;
-  cursor: help;
-  max-width: 55%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.meta-tooltip {
-  display: none;
-  position: absolute;
-  right: 0;
-  top: calc(100% + 6px);
-  z-index: 30;
-  background: #0b1224;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-  width: max-content;
-  max-width: 320px;
-  padding: 0.5rem 0.65rem;
-  color: var(--text);
-  white-space: normal;
-  line-height: 1.4;
-}
-
-.meta:hover .meta-tooltip,
-.meta:focus-within .meta-tooltip {
-  display: block;
-}
 
 main {
   flex: 1;
@@ -351,9 +314,6 @@ button.secondary:hover {
     gap: 0.5rem;
   }
 
-  .meta {
-    max-width: 100%;
-  }
 
   .card-header {
     flex-direction: column;

@@ -1,0 +1,7 @@
+{
+  "id": "html.002",
+  "description": "Remove Confluence heading anchor buttons",
+  "pattern": "<span[^>]*class=\"heading-anchor-wrapper\"[\\s\\S]*?<\\/span>",
+  "replacement": "",
+  "flags": "gi"
+}

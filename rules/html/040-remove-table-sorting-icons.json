@@ -1,0 +1,7 @@
+{
+  "id": "html.004",
+  "description": "Remove Confluence table sorting icons",
+  "pattern": "<figure[^>]*class=\"ak-renderer-tableHeader-sorting-icon__wrapper\"[\\s\\S]*?<\\/figure>",
+  "replacement": "",
+  "flags": "gi"
+}

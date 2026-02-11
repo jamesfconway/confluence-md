@@ -1,0 +1,58 @@
+[
+  {
+    "id": "markdown.003",
+    "description": "Blue lozenge → 🔵",
+    "pattern": "%%STATUS-blue-([^%]+)-STATUS%%",
+    "replacement": "(🔵 $1)",
+    "flags": "gi"
+  },
+  {
+    "id": "markdown.004",
+    "description": "Green lozenge → 🟢",
+    "pattern": "%%STATUS-green-([^%]+)-STATUS%%",
+    "replacement": "(🟢 $1)",
+    "flags": "gi"
+  },
+  {
+    "id": "markdown.005",
+    "description": "Yellow lozenge → 🟡",
+    "pattern": "%%STATUS-yellow-([^%]+)-STATUS%%",
+    "replacement": "(🟡 $1)",
+    "flags": "gi"
+  },
+  {
+    "id": "markdown.006",
+    "description": "Red lozenge → 🔴",
+    "pattern": "%%STATUS-red-([^%]+)-STATUS%%",
+    "replacement": "(🔴 $1)",
+    "flags": "gi"
+  },
+  {
+    "id": "markdown.007",
+    "description": "Grey lozenge → ⚪",
+    "pattern": "%%STATUS-grey-([^%]+)-STATUS%%",
+    "replacement": "(⚪ $1)",
+    "flags": "gi"
+  },
+  {
+    "id": "markdown.008",
+    "description": "Purple lozenge → 🟣",
+    "pattern": "%%STATUS-purple-([^%]+)-STATUS%%",
+    "replacement": "(🟣 $1)",
+    "flags": "gi"
+  },
+  {
+    "id": "markdown.009",
+    "description": "Brown lozenge → 🟤",
+    "pattern": "%%STATUS-brown-([^%]+)-STATUS%%",
+    "replacement": "(🟤 $1)",
+    "flags": "gi"
+  },
+  {
+    "id": "markdown.010",
+    "description": "Convert STATUS placeholders to default emoji lozenge",
+    "pattern": "%%STATUS-([^-]+)-([^%]+)-STATUS%%",
+    "replacement": "(🔘 $2)",
+    "flags": "gi"
+  }
+]

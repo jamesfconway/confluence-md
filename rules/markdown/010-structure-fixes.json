@@ -1,0 +1,16 @@
+[
+  {
+    "id": "markdown.001",
+    "description": "Fix '# - ' heading-list hybrids",
+    "pattern": "^# - ",
+    "replacement": "- ",
+    "flags": "gm"
+  },
+  {
+    "id": "markdown.002",
+    "description": "Split combined heading + table header row (e.g. '# Title | ...')",
+    "pattern": "^# ([^|\\n]+)\\s*\\|\\s*(.+)$",
+    "replacement": "# $1\n\n| $2",
+    "flags": "gm"
+  }
+]

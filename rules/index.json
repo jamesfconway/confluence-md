@@ -1,0 +1,16 @@
+{
+  "htmlPreprocessors": [
+    "rules/html/010-unwrap-mark.json",
+    "rules/html/020-remove-heading-anchor-buttons.json",
+    "rules/html/030-strip-table-colgroup.json",
+    "rules/html/040-remove-table-sorting-icons.json",
+    "rules/html/050-extract-status-lozenge.json",
+    "rules/html/060-extract-inline-status-node.json",
+    "rules/html/070-convert-inline-code-spans.json",
+    "rules/html/080-normalize-code-block-markup.json"
+  ],
+  "markdownPostprocessors": [
+    "rules/markdown/010-structure-fixes.json",
+    "rules/markdown/020-status-lozenges.json"
+  ]
+}

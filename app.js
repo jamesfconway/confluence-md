@@ -1,4 +1,4 @@
-const RULES_PATH = "rules.json";
+const RULES_PATH = "rules/index.json";
 const pasteArea = document.getElementById("pasteArea");
 const htmlView = document.getElementById("htmlView");
 const htmlHighlight = document.getElementById("htmlHighlight");
@@ -12,8 +12,6 @@ const copyHtmlBtn = document.getElementById("copyHtml");
 const includeLinksInput = document.getElementById("includeLinks");
 const includeImagePlaceholdersInput = document.getElementById("includeImagePlaceholders");
 const emojiNamesInput = document.getElementById("emojiNames");
-const buildMetaText = document.getElementById("buildMetaText");
-const buildMetaTooltip = document.getElementById("buildMetaTooltip");
 
 const converterService = Converter.createService();
 let currentRules = { ...Converter.EMPTY_RULES };
@@ -22,15 +20,6 @@ let inlineFeedbackTimeout;
 
 const STORAGE_KEY = "converterOptions";
 
-const BUILD_INFO = {
-  version: "0.0.0",
-  updatedAtUtc: "2026-02-10T12:59:25Z",
-  recentCommits: [
-    "Merge pull request #19 from jamesfconway/codex/add-support-for-latex-blocks",
-    "Add support for Confluence Easy Math LaTeX macros",
-    "Merge pull request #18 from jamesfconway/codex/add-expand-support-in-tables",
-  ]
-};
 
 function renderMarkdown(optionsOverride = {}) {
   if (!lastHtml) return;
@@ -66,43 +55,6 @@ function resetFeedback() {
   setStatus("");
 }
 
-function formatLastUpdated(isoDate) {
-  const parsed = new Date(isoDate);
-  if (Number.isNaN(parsed.getTime())) {
-    return `Updated ${isoDate}`;
-  }
-
-  try {
-    return `Updated ${parsed.toLocaleString()}`;
-  } catch (err) {
-    console.warn("Could not format date in local timezone", err);
-    return `Updated ${parsed.toISOString()}`;
-  }
-}
-
-function renderBuildMeta() {
-  if (!buildMetaText || !buildMetaTooltip) return;
-
-  let runtimeVersion = "";
-  try {
-    runtimeVersion = globalThis.chrome?.runtime?.getManifest?.()?.version || "";
-  } catch (err) {
-    console.warn("Could not read extension manifest version", err);
-  }
-
-  const version = runtimeVersion || BUILD_INFO.version || "unknown";
-  const updatedText = formatLastUpdated(BUILD_INFO.updatedAtUtc || "unknown");
-  buildMetaText.textContent = `Version ${version} · ${updatedText}`;
-
-  if (BUILD_INFO.recentCommits.length > 0) {
-    buildMetaTooltip.innerHTML = BUILD_INFO.recentCommits
-      .slice(0, 3)
-      .map((message, index) => `<div>${index + 1}. ${message}</div>`)
-      .join("");
-  } else {
-    buildMetaTooltip.textContent = "No recent commit messages available.";
-  }
-}
 
 async function persistOptions() {
   if (!chrome?.storage?.sync) return;
@@ -306,7 +258,6 @@ copyHtmlBtn?.addEventListener("click", copyHtml);
 });
 
 async function bootstrap() {
-  renderBuildMeta();
   await loadStoredOptions();
   await loadRulesFromFile();
   setStatus("Waiting for content…");
