@@ -1,4 +1,17 @@
-importScripts("https://unpkg.com/turndown/dist/turndown.js", "https://unpkg.com/turndown-plugin-gfm/dist/turndown-plugin-gfm.js", "converter.js");
+importScripts(
+  "https://unpkg.com/turndown/dist/turndown.js",
+  "https://unpkg.com/turndown-plugin-gfm/dist/turndown-plugin-gfm.js",
+  "converter/rules/loader.js",
+  "converter/plugins/imagePlaceholder.js",
+  "converter/plugins/expandBlock.js",
+  "converter/plugins/panel.js",
+  "converter/plugins/mentionPlaceholder.js",
+  "converter/plugins/confluenceTable.js",
+  "converter/plugins/extensionFallback.js",
+  "converter/plugins/pluginLoader.js",
+  "converter/pipeline/stages.js",
+  "converter.js"
+);
 /* global Converter */
 const RULES_URL = chrome.runtime.getURL("rules.json");
 let rulesCache = null;

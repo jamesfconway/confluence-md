@@ -74,7 +74,13 @@ function testRuleOrderingMatchesLegacy() {
 function testLatexEasyMathRemoved() {
   const files = [
     path.join(__dirname, "..", "converter.js"),
-    path.join(__dirname, "..", "converter", "plugins", "defaults.js"),
+    path.join(__dirname, "..", "converter", "plugins", "pluginLoader.js"),
+    path.join(__dirname, "..", "converter", "plugins", "imagePlaceholder.js"),
+    path.join(__dirname, "..", "converter", "plugins", "expandBlock.js"),
+    path.join(__dirname, "..", "converter", "plugins", "panel.js"),
+    path.join(__dirname, "..", "converter", "plugins", "mentionPlaceholder.js"),
+    path.join(__dirname, "..", "converter", "plugins", "confluenceTable.js"),
+    path.join(__dirname, "..", "converter", "plugins", "extensionFallback.js"),
     path.join(__dirname, "..", "converter", "pipeline", "stages.js")
   ];
 
