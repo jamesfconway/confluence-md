@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>math macro fixtures</title>
+  <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
+  <script src="https://unpkg.com/turndown-plugin-gfm/dist/turndown-plugin-gfm.js"></script>
+  <script src="../converter/rules/loader.js"></script>
+  <script src="../converter/plugins/imagePlaceholder.js"></script>
+  <script src="../converter/plugins/expandBlock.js"></script>
+  <script src="../converter/plugins/panel.js"></script>
+  <script src="../converter/plugins/mentionPlaceholder.js"></script>
+  <script src="../converter/plugins/confluenceTable.js"></script>
+  <script src="../converter/plugins/mathMacro.js"></script>
+  <script src="../converter/plugins/extensionFallback.js"></script>
+  <script src="../converter/plugins/pluginLoader.js"></script>
+  <script src="../converter/pipeline/stages.js"></script>
+  <script src="../converter.js"></script>
+</head>
+<body>
+<pre id="results"></pre>
+<script>
+(function () {
+  const service = window.Converter.createService();
+  const convert = (html) => service.convertHtmlToMarkdown(html, window.Converter.EMPTY_RULES);
+
+  const expectedA = `# Calculating the Key Result\n\nFor COMMERICAL trips only, for any given period and operator or group of operators:\n\n\\text{Delivery Rate (%)} = \\frac{\\text{Performed Trips} + \\text{Manually Performed Trips}}{\\text{Scheduled Trips}} \\times 100\n\nThen calculate: \\text{Improvement} = \\text{Current Delivery Rate} - \\text{Baseline Delivery Rate}\n\nSupporting aggregates will be calculated used for validation and explanation; the Key Result itself uses only the defined delivery metric.`;
+
+  const fixtures = [
+    {
+      id: 'A',
+      html: `<h1>Calculating the Key Result</h1><p>For COMMERICAL trips only, for any given period and operator or group of operators:</p><div class="ak-renderer-extension"><div class="conf-macro" data-macro-name="easy-math-block"><span data-testid="legacy-macro-element" data-macro-parameters='{"body":"\\\\text{Delivery Rate (%)} = \\\\frac{\\\\text{Performed Trips} + \\\\text{Manually Performed Trips}}{\\\\text{Scheduled Trips}} \\\\times 100"}'></span></div></div><p>Then calculate: <span data-testid="legacy-macro-element" data-macro-name="eazy-math-inline" data-macro-parameters='{"body":"\\\\text{Improvement} = \\\\text{Current Delivery Rate} - \\\\text{Baseline Delivery Rate}"}'></span></p><p>Supporting aggregates will be calculated used for validation and explanation; the Key Result itself uses only the defined delivery metric.</p>`,
+      expected: expectedA
+    },
+    {
+      id: 'B',
+      html: `<p>Before</p><span data-vc="legacy-macro-element_easy-math-block" data-macro-parameters='{"body":"\\\\text{B}"}'></span><p>After</p>`,
+      expected: `Before\n\n\\text{B}\n\nAfter`
+    },
+    {
+      id: 'C',
+      html: `<div class="ak-renderer-extension"><div class="conf-macro" data-macro-name="easy-math-block"><span data-macro-parameters='{"body":"\\\\text{C}"}' data-testid="legacy-macro-element"></span></div></div>`,
+      expected: `\\text{C}`
+    },
+    {
+      id: 'D',
+      html: `<p>Then calculate: <span data-macro-name="eazy-math-inline" data-macro-parameters='{"body":"\\\\text{Improvement} = ..."}'></span>. Next sentence.</p>`,
+      expected: `Then calculate: \\text{Improvement} = ... . Next sentence.`
+    },
+    {
+      id: 'E',
+      html: `<span data-macro-name="eazy-math-inline" data-macro-parameters='{"body":"\\\\\\\\text{A \\\"quoted\\\" thing} = 1"}'></span>`,
+      expected: `\\text{A "quoted" thing} = 1`
+    },
+    {
+      id: 'F',
+      html: `<span data-macro-name="eazy-math-inline" data-macro-parameters='{"body": "\\\\text{Broken}'></span><p>safe</p>`,
+      expectedIncludes: `safe`
+    },
+    {
+      id: 'G',
+      html: `<span data-macro-name="easy-math-block" data-macro-parameters='{"_parentId":"5601361991"}'></span><p>tail</p>`,
+      expected: `tail`
+    },
+    {
+      id: 'H',
+      html: `<div data-macro-parameters='{"body":"WRONG"}'><span data-macro-name="eazy-math-inline" data-macro-parameters='{"body":"\\\\text{RIGHT}"}'></span></div>`,
+      expected: `\\text{RIGHT}`
+    }
+  ];
+
+  function runOne(f) {
+    let output = '';
+    let error = null;
+    try {
+      output = convert(f.html).trim();
+    } catch (err) {
+      error = String(err && err.message || err);
+    }
+
+    let pass;
+    if (error) {
+      pass = false;
+    } else if (f.expectedIncludes) {
+      pass = output.includes(f.expectedIncludes);
+    } else {
+      pass = output === f.expected;
+    }
+
+    return { id: f.id, pass, output, expected: f.expected || `(includes ${f.expectedIncludes})`, error };
+  }
+
+  const results = fixtures.map(runOne);
+  window.__MATH_FIXTURE_RESULTS__ = results;
+  document.getElementById('results').textContent = JSON.stringify(results, null, 2);
+})();
+</script>
+</body>
+</html>

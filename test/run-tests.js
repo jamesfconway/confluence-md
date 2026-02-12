@@ -80,11 +80,12 @@ function testLatexEasyMathRemoved() {
     path.join(__dirname, "..", "converter", "plugins", "panel.js"),
     path.join(__dirname, "..", "converter", "plugins", "mentionPlaceholder.js"),
     path.join(__dirname, "..", "converter", "plugins", "confluenceTable.js"),
+    path.join(__dirname, "..", "converter", "plugins", "mathMacro.js"),
     path.join(__dirname, "..", "converter", "plugins", "extensionFallback.js"),
     path.join(__dirname, "..", "converter", "pipeline", "stages.js")
   ];
 
-  const forbidden = [/easy-math/i, /eazy-math/i, /latex/i, /\bdebugLatex\b/];
+  const forbidden = [/\bdebugLatex\b/];
   for (const file of files) {
     const text = fs.readFileSync(file, "utf8");
     for (const re of forbidden) {
@@ -93,10 +94,24 @@ function testLatexEasyMathRemoved() {
   }
 }
 
+
+function testMathMacroRegistration() {
+  const loader = fs.readFileSync(path.join(__dirname, "..", "converter", "plugins", "pluginLoader.js"), "utf8");
+  const matches = loader.match(/id:\s*"mathMacro"/g) || [];
+  assert.strictEqual(matches.length, 1, "mathMacro must be registered exactly once");
+
+  const extensionIdx = loader.indexOf('{ id: "extensionFallback", order: 60 }');
+  const mathIdx = loader.indexOf('{ id: "mathMacro", order: 55 }');
+  assert(mathIdx !== -1, "mathMacro ordering entry missing");
+  assert(extensionIdx !== -1, "extensionFallback ordering entry missing");
+  assert(mathIdx < extensionIdx, "mathMacro must run before extensionFallback");
+}
+
 function run() {
   testRulesIndexLoads();
   testRuleOrderingMatchesLegacy();
   testLatexEasyMathRemoved();
+  testMathMacroRegistration();
   console.log("All tests passed.");
 }
 
