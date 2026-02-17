@@ -8,7 +8,7 @@
     },
     {
       "description": "Remove Confluence heading anchor buttons",
-      "pattern": "<span[^>]*class=\"heading-anchor-wrapper\"[\\s\\S]*?<\\/span>",
+      "pattern": "<span[^>]*class=\"heading-anchor-wrapper\"[^>]*>[\\s\\S]*?<\\/button\\s*>\\s*<\\/span>",
       "replacement": "",
       "flags": "gi"
     },
