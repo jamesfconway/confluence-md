@@ -117,18 +117,36 @@ function renderHtmlViews(html) {
   }
 }
 
+function detectHtmlMode(html) {
+  if (typeof html !== "string" || !html) return "";
+  if (/data-prosemirror-node-name=/.test(html) || /data-pm-slice=/.test(html)) {
+    return "edit mode HTML";
+  }
+  if (/heading-anchor-wrapper/.test(html) || /data-renderer-start-pos=/.test(html)) {
+    return "read mode HTML";
+  }
+  if (/<\/?[a-zA-Z][\w:-]*(?:\s|>)/.test(html)) {
+    return "HTML";
+  }
+  return "plain text";
+}
+
 async function readClipboardContent() {
   if (navigator.clipboard?.read) {
     try {
       const items = await navigator.clipboard.read();
+
       for (const item of items) {
         if (item.types.includes("text/html")) {
           const blob = await item.getType("text/html");
-          return blob.text();
+          return { text: await blob.text(), mimeType: "text/html" };
         }
+      }
+
+      for (const item of items) {
         if (item.types.includes("text/plain")) {
           const blob = await item.getType("text/plain");
-          return blob.text();
+          return { text: await blob.text(), mimeType: "text/plain" };
         }
       }
     } catch (err) {
@@ -137,7 +155,7 @@ async function readClipboardContent() {
   }
 
   if (navigator.clipboard?.readText) {
-    return navigator.clipboard.readText();
+    return { text: await navigator.clipboard.readText(), mimeType: "text/plain" };
   }
 
   throw new Error("Clipboard API unavailable");
@@ -146,13 +164,13 @@ async function readClipboardContent() {
 async function ingestFromClipboard(sourceLabel = "clipboard") {
   resetFeedback();
   try {
-    const clipboardText = await readClipboardContent();
+    const { text: clipboardText, mimeType } = await readClipboardContent();
     if (!clipboardText) {
       setStatus("Clipboard is empty.");
       setInlineFeedback("Clipboard is empty.", "error");
       return;
     }
-    ingestHtml(clipboardText, sourceLabel);
+    ingestHtml(clipboardText, sourceLabel, mimeType);
   } catch (err) {
     console.warn("Clipboard read failed", err);
     setStatus("Clipboard access was denied or unavailable.");
@@ -160,13 +178,20 @@ async function ingestFromClipboard(sourceLabel = "clipboard") {
   }
 }
 
-function ingestHtml(html, sourceLabel = "") {
+function ingestHtml(html, sourceLabel = "", mimeType = "") {
   if (!html) return;
   lastHtml = html;
   pasteArea.innerHTML = html;
   renderHtmlViews(html);
   renderMarkdown();
-  setStatus(sourceLabel ? `Converted from ${sourceLabel}.` : "Converted.");
+
+  const sourceBits = [];
+  if (sourceLabel) sourceBits.push(`from ${sourceLabel}`);
+  if (mimeType) sourceBits.push(`(${mimeType})`);
+  const mode = detectHtmlMode(html);
+  if (mode) sourceBits.push(`detected ${mode}`);
+
+  setStatus(sourceBits.length ? `Converted ${sourceBits.join(" ")}.` : "Converted.");
 }
 
 pasteArea.addEventListener("paste", async (e) => {
@@ -176,7 +201,9 @@ pasteArea.addEventListener("paste", async (e) => {
   const plain = e.clipboardData?.getData("text/plain");
 
   if (html || plain) {
-    ingestHtml(html || plain, "clipboard");
+    const payload = html || plain;
+    const mimeType = html ? "text/html" : "text/plain";
+    ingestHtml(payload, "clipboard", mimeType);
     return;
   }
 

@@ -107,11 +107,89 @@ function testMathMacroRegistration() {
   assert(mathIdx < extensionIdx, "mathMacro must run before extensionFallback");
 }
 
+
+function testEscapedHtmlNormalization() {
+  const vm = require("vm");
+  const stagesCode = fs.readFileSync(path.join(__dirname, "..", "converter", "pipeline", "stages.js"), "utf8");
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(stagesCode, sandbox);
+
+  const normalize = sandbox.window.ConverterPipeline.normalizePotentiallyEscapedHtml;
+  assert.strictEqual(typeof normalize, "function", "normalizePotentiallyEscapedHtml must be exported");
+
+  const escaped = '<h1\\n data-local-id="abc">Title</h1>\\n<p>Body</p>';
+  const normalized = normalize(escaped);
+  assert(normalized.includes(String.fromCharCode(10)), "escaped newlines should become real newlines");
+  assert(!normalized.includes("\\n"), "normalized HTML should not contain escaped newline tokens");
+
+  const fenced = "```html\\n<h2\\n data-x=\"1\">H</h2>\\n```";
+  const unfenced = normalize(fenced);
+  assert(!unfenced.startsWith("```"), "fenced HTML input should be unwrapped");
+  assert(unfenced.includes("<h2"), "fenced input should preserve HTML content");
+}
+
+
+function extractStructureSignature(html) {
+  return {
+    h1: (html.match(/<h1\b/gi) || []).length,
+    h2: (html.match(/<h2\b/gi) || []).length,
+    p: (html.match(/<p\b/gi) || []).length,
+    li: (html.match(/<li\b/gi) || []).length
+  };
+}
+
+function testConfluenceModePreprocessParity() {
+  const vm = require("vm");
+  const stagesCode = fs.readFileSync(path.join(__dirname, "..", "converter", "pipeline", "stages.js"), "utf8");
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(stagesCode, sandbox);
+
+  const applyRegexRules = sandbox.window.ConverterPipeline.applyRegexRules;
+  assert.strictEqual(typeof applyRegexRules, "function", "applyRegexRules must be exported");
+
+  const rules = readJson(path.join(__dirname, "..", "rules", "index.json"));
+  const htmlRules = rules.htmlPreprocessors.flatMap((file) => {
+    const payload = readJson(path.join(__dirname, "..", file));
+    return rulesFromPayload(payload);
+  });
+
+  const editModeHtml = `
+<h1 data-prosemirror-node-name="heading" data-pm-slice="1 1 []">Measurement approach</h1>
+<p data-prosemirror-node-name="paragraph">Although Key Result 1.3 is measured using a single headline metric.</p>
+<ul data-prosemirror-node-name="bulletList"><li data-prosemirror-node-name="listItem"><p>explain changes in the headline metric</p></li><li data-prosemirror-node-name="listItem"><p>guard against misleading improvements</p></li></ul>
+<h1 data-prosemirror-node-name="heading">Process</h1>
+<h2 data-prosemirror-node-name="heading">Extract</h2>
+<p data-prosemirror-node-name="paragraph">Delivery Rate will be calculated from CSV Exports.</p>`;
+
+  const readModeHtml = `
+<h1 id="Measurement-approach">Measurement approach<span class="heading-anchor-wrapper"><button data-testid="anchor-button"><span role="img" aria-label="Copy"><svg><path></path></svg></span></button></span></h1>
+<p data-renderer-start-pos="1197">Although Key Result 1.3 is measured using a single headline metric.</p>
+<ul class="ak-ul"><li><p>explain changes in the headline metric</p></li><li><p>guard against misleading improvements</p></li></ul>
+<h1 id="Process">Process<span class="heading-anchor-wrapper"><button><span>Copy</span></button></span></h1>
+<h2 id="Extract">Extract<span class="heading-anchor-wrapper"><button><span>Copy</span></button></span></h2>
+<p data-renderer-start-pos="1628">Delivery Rate will be calculated from CSV Exports.</p>`;
+
+  const editClean = applyRegexRules(editModeHtml, htmlRules);
+  const readClean = applyRegexRules(readModeHtml, htmlRules);
+
+  assert(!readClean.includes("heading-anchor-wrapper"), "read mode anchor wrappers should be stripped");
+  assert(!readClean.includes("aria-label=\"Copy\""), "read mode anchor icon markup should be removed");
+  assert(!readClean.includes(">Copy<"), "read mode heading copy text should be removed");
+
+  const editSig = extractStructureSignature(editClean);
+  const readSig = extractStructureSignature(readClean);
+  assert.deepStrictEqual(readSig, editSig, "read and edit mode HTML should preserve equivalent block structure after preprocess");
+}
+
 function run() {
   testRulesIndexLoads();
   testRuleOrderingMatchesLegacy();
   testLatexEasyMathRemoved();
   testMathMacroRegistration();
+  testEscapedHtmlNormalization();
+  testConfluenceModePreprocessParity();
   console.log("All tests passed.");
 }
 

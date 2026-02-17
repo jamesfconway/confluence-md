@@ -1,4 +1,23 @@
 (function (global) {
+  function normalizePotentiallyEscapedHtml(input) {
+    if (typeof input !== "string" || input.length === 0) return "";
+
+    const fencedMatch = input.match(/^```(?:html)?(?:\s*\n|\s*\\n)([\s\S]*?)(?:\n|\\n)```\s*$/i);
+    const candidate = fencedMatch ? fencedMatch[1] : input;
+
+    const looksLikeHtml = /<\/?[a-zA-Z][\w:-]*(?:\s|\\n|>)/.test(candidate);
+    const containsEscapedWhitespace = /\\[nrt]/.test(candidate);
+    if (!looksLikeHtml || !containsEscapedWhitespace) {
+      return candidate;
+    }
+
+    return candidate
+      .replace(/\\r\\n/g, "\n")
+      .replace(/\\n/g, "\n")
+      .replace(/\\r/g, "\n")
+      .replace(/\\t/g, "\t");
+  }
+
   function applyRegexRules(text, rules = []) {
     let out = text;
     for (const r of rules) {
@@ -13,7 +32,7 @@
   }
 
   function stageLoadInput(ctx) {
-    return { ...ctx, html: ctx.html || "" };
+    return { ...ctx, html: normalizePotentiallyEscapedHtml(ctx.html || "") };
   }
 
   function stageHtmlPreprocess(ctx) {
@@ -69,6 +88,7 @@
   }
 
   global.ConverterPipeline = {
+    normalizePotentiallyEscapedHtml,
     applyRegexRules,
     runConversionPipeline,
     stageLoadInput,
