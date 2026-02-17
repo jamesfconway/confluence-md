@@ -9,6 +9,7 @@
     { id: "expandBlock", order: 30 },
     { id: "panel", order: 40 },
     { id: "confluenceTable", order: 50 },
+    { id: "mathMacro", order: 55 },
     { id: "extensionFallback", order: 60 }
   ]);
 
