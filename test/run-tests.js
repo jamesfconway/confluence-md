@@ -94,7 +94,6 @@ function testLatexEasyMathRemoved() {
   }
 }
 
-
 function testMathMacroRegistration() {
   const loader = fs.readFileSync(path.join(__dirname, "..", "converter", "plugins", "pluginLoader.js"), "utf8");
   const matches = loader.match(/id:\s*"mathMacro"/g) || [];
@@ -106,7 +105,6 @@ function testMathMacroRegistration() {
   assert(extensionIdx !== -1, "extensionFallback ordering entry missing");
   assert(mathIdx < extensionIdx, "mathMacro must run before extensionFallback");
 }
-
 
 function testEscapedHtmlNormalization() {
   const vm = require("vm");
@@ -128,7 +126,6 @@ function testEscapedHtmlNormalization() {
   assert(!unfenced.startsWith("```"), "fenced HTML input should be unwrapped");
   assert(unfenced.includes("<h2"), "fenced input should preserve HTML content");
 }
-
 
 function extractStructureSignature(html) {
   return {
@@ -175,13 +172,99 @@ function testConfluenceModePreprocessParity() {
   const readClean = applyRegexRules(readModeHtml, htmlRules);
 
   assert(!readClean.includes("heading-anchor-wrapper"), "read mode anchor wrappers should be stripped");
-  assert(!readClean.includes("aria-label=\"Copy\""), "read mode anchor icon markup should be removed");
+  assert(!readClean.includes('aria-label="Copy"'), "read mode anchor icon markup should be removed");
   assert(!readClean.includes(">Copy<"), "read mode heading copy text should be removed");
 
   const editSig = extractStructureSignature(editClean);
   const readSig = extractStructureSignature(readClean);
   assert.deepStrictEqual(readSig, editSig, "read and edit mode HTML should preserve equivalent block structure after preprocess");
 }
+
+function testExtensionFallbackScopeAndStructure() {
+  const vm = require("vm");
+  const extensionFallbackCode = fs.readFileSync(
+    path.join(__dirname, "..", "converter", "plugins", "extensionFallback.js"),
+    "utf8"
+  );
+
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(extensionFallbackCode, sandbox);
+
+  const register = sandbox.window.ConverterPluginModules?.extensionFallback?.register;
+  assert.strictEqual(typeof register, "function", "extensionFallback register must be available");
+
+  let fallbackRule;
+  const fakeService = {
+    addRule(_name, rule) {
+      fallbackRule = rule;
+    }
+  };
+  register(fakeService);
+  assert(fallbackRule, "extensionFallback rule should be registered");
+
+  function fakeNode(attrs = {}, textContent = "") {
+    return {
+      nodeType: 1,
+      textContent,
+      hasAttribute(name) {
+        return Object.prototype.hasOwnProperty.call(attrs, name);
+      },
+      getAttribute(name) {
+        return attrs[name] ?? null;
+      }
+    };
+  }
+
+  const headingNode = fakeNode({ "data-prosemirror-node-name": "heading" }, "Interventions (System Defined)");
+  const paragraphNode = fakeNode(
+    { "data-prosemirror-node-name": "paragraph" },
+    "Interventions represent explicit mitigation actions."
+  );
+  const listItemNode = fakeNode({ "data-prosemirror-node-name": "listItem" }, "Cancellation");
+
+  assert.strictEqual(fallbackRule.filter(headingNode), false, "heading should not be swallowed by extension fallback");
+  assert.strictEqual(fallbackRule.filter(paragraphNode), false, "paragraph should not be swallowed by extension fallback");
+  assert.strictEqual(fallbackRule.filter(listItemNode), false, "list items should not be swallowed by extension fallback");
+
+  assert.strictEqual(
+    fallbackRule.filter(fakeNode({ "data-extension-key": "com.acme.chart" }, "Chart block")),
+    true,
+    "extension-key nodes should use extension fallback"
+  );
+  assert.strictEqual(
+    fallbackRule.filter(fakeNode({ "data-prosemirror-node-name": "inlineExtension" }, "Inline widget")),
+    true,
+    "inlineExtension nodes should use extension fallback"
+  );
+
+  function renderNode(node) {
+    if (fallbackRule.filter(node)) {
+      return fallbackRule.replacement("", node);
+    }
+
+    const nodeName = node.getAttribute("data-prosemirror-node-name");
+    if (nodeName === "heading") return `## ${node.textContent}`;
+    if (nodeName === "paragraph") return node.textContent;
+    if (nodeName === "listItem") return `- ${node.textContent}`;
+    return node.textContent;
+  }
+
+  const rendered = [headingNode, paragraphNode, fakeNode({ "data-prosemirror-node-name": "heading" }, "Examples"), listItemNode]
+    .map(renderNode)
+    .join("\n\n");
+
+  assert(rendered.includes("## Interventions (System Defined)"), "expected heading markers in markdown");
+  assert(rendered.includes("## Examples"), "expected sub-heading markers in markdown");
+  assert(rendered.includes("- Cancellation"), "expected list markers in markdown");
+  assert(rendered.includes("\n\n"), "expected paragraph/list separation in markdown");
+  assert.notStrictEqual(
+    rendered.replace(/\n/g, ""),
+    "Interventions (System Defined)Interventions represent explicit mitigation actions.ExamplesCancellation",
+    "output should not collapse into one concatenated line"
+  );
+}
+
 
 function run() {
   testRulesIndexLoads();
@@ -190,6 +273,7 @@ function run() {
   testMathMacroRegistration();
   testEscapedHtmlNormalization();
   testConfluenceModePreprocessParity();
+  testExtensionFallbackScopeAndStructure();
   console.log("All tests passed.");
 }
 
