@@ -79,6 +79,8 @@ function testLatexEasyMathRemoved() {
     path.join(__dirname, "..", "converter", "plugins", "expandBlock.js"),
     path.join(__dirname, "..", "converter", "plugins", "panel.js"),
     path.join(__dirname, "..", "converter", "plugins", "mentionPlaceholder.js"),
+    path.join(__dirname, "..", "converter", "plugins", "taskList.js"),
+    path.join(__dirname, "..", "converter", "plugins", "toc.js"),
     path.join(__dirname, "..", "converter", "plugins", "confluenceTable.js"),
     path.join(__dirname, "..", "converter", "plugins", "mathMacro.js"),
     path.join(__dirname, "..", "converter", "plugins", "extensionFallback.js"),
@@ -266,6 +268,211 @@ function testExtensionFallbackScopeAndStructure() {
 }
 
 
+
+function testTaskListPlugin() {
+  const vm = require("vm");
+  const mentionCode = fs.readFileSync(path.join(__dirname, "..", "converter", "plugins", "mentionPlaceholder.js"), "utf8");
+  const taskCode = fs.readFileSync(path.join(__dirname, "..", "converter", "plugins", "taskList.js"), "utf8");
+
+  const sandbox = { window: {}, console, Intl, Date };
+  vm.createContext(sandbox);
+  vm.runInContext(mentionCode, sandbox);
+  vm.runInContext(taskCode, sandbox);
+
+  const registerTask = sandbox.window.ConverterPluginModules?.taskList?.register;
+  assert.strictEqual(typeof registerTask, "function", "taskList plugin should register");
+
+  let taskRule;
+  const fakeService = {
+    addRule(name, rule) {
+      if (name === "taskList") taskRule = rule;
+    },
+    turndown(html) {
+      return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    }
+  };
+
+  const mentionState = { map: new Map(), counter: 0 };
+  registerTask(fakeService, { mentionState });
+  assert(taskRule, "taskList rule should be defined");
+
+  function makeNode({ attrs = {}, taskItemHtml = "", contentHtml = "", mentionId = "", dateTs = "", checked = false, isEdit = true }) {
+    const mentionNode = mentionId
+      ? {
+          getAttribute(name) {
+            return name === "data-mention-id" ? mentionId : null;
+          },
+          outerHTML: `<span data-mention-id="${mentionId}"></span>`
+        }
+      : null;
+
+    const dateNode = dateTs
+      ? {
+          getAttribute(name) {
+            return name === "data-timestamp" ? String(dateTs) : null;
+          },
+          outerHTML: `<span data-node-type="date" data-timestamp="${dateTs}">Today</span>`
+        }
+      : null;
+
+    const checkboxNode = checked ? { checked: true } : null;
+
+    return {
+      nodeType: 1,
+      matches(selector) {
+        return selector === '[data-prosemirror-node-name="taskItem"]' ? isEdit : false;
+      },
+      hasAttribute(name) {
+        return Object.prototype.hasOwnProperty.call(attrs, name);
+      },
+      getAttribute(name) {
+        return attrs[name] ?? null;
+      },
+      querySelector(selector) {
+        if (selector === "div.task-item" && isEdit) return { innerHTML: taskItemHtml };
+        if (selector === 'div[data-component="content"]' && !isEdit) return { innerHTML: contentHtml };
+        if (selector === "[data-mention-id]") return mentionNode;
+        if (selector === '[data-node-type="date"]') return dateNode;
+        if (selector === 'input[type="checkbox"]') return checkboxNode;
+        return null;
+      }
+    };
+  }
+
+  const ts = Date.UTC(2026, 1, 20);
+
+  const editNoExtras = makeNode({
+    attrs: { "data-task-state": "TODO" },
+    taskItemHtml: "Write docs",
+    isEdit: true
+  });
+  assert.strictEqual(taskRule.filter(editNoExtras), true, "edit mode tasks should match filter");
+  assert.strictEqual(taskRule.replacement("", editNoExtras).trim(), "- [ ] Write docs", "edit task without mention/date should render");
+
+  const editWithMention = makeNode({
+    attrs: { "data-task-state": "TODO" },
+    taskItemHtml: 'Assign <span data-mention-id="u-1"></span>',
+    mentionId: "u-1",
+    isEdit: true
+  });
+  assert.strictEqual(taskRule.replacement("", editWithMention).trim(), "- [ ] Assign [User 1]", "edit task mention should render");
+
+  const editWithDate = makeNode({
+    attrs: { "data-task-state": "DONE" },
+    taskItemHtml: 'Finish <span data-node-type="date" data-timestamp="' + ts + '">Today</span>',
+    dateTs: ts,
+    isEdit: true
+  });
+  assert.strictEqual(taskRule.replacement("", editWithDate).trim(), "- [x] Finish by 20 Feb 2026", "edit task date should render from timestamp");
+
+  const readWithBoth = makeNode({
+    attrs: { "data-task-local-id": "task-1" },
+    contentHtml: 'Review <span data-mention-id="u-1"></span> <span data-node-type="date" data-timestamp="' + ts + '">Today</span>',
+    mentionId: "u-1",
+    dateTs: ts,
+    checked: true,
+    isEdit: false
+  });
+  assert.strictEqual(taskRule.filter(readWithBoth), true, "read mode tasks should match filter");
+  assert.strictEqual(taskRule.replacement("", readWithBoth).trim(), "- [x] Review [User 1] by 20 Feb 2026", "read task with mention/date should render");
+
+  const readNoExtras = makeNode({
+    attrs: { "data-task-local-id": "task-2" },
+    contentHtml: "Simple read task",
+    checked: false,
+    isEdit: false
+  });
+  assert.strictEqual(taskRule.replacement("", readNoExtras).trim(), "- [ ] Simple read task", "read task without mention/date should render");
+}
+
+function testTocPluginReadMode() {
+  const vm = require("vm");
+  const tocCode = fs.readFileSync(path.join(__dirname, "..", "converter", "plugins", "toc.js"), "utf8");
+
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(tocCode, sandbox);
+
+  const registerToc = sandbox.window.ConverterPluginModules?.toc?.register;
+  assert.strictEqual(typeof registerToc, "function", "toc plugin should register");
+
+  let tocRule;
+  registerToc({
+    addRule(name, rule) {
+      if (name === "toc") tocRule = rule;
+    }
+  });
+
+  function anchor(text, href) {
+    return {
+      textContent: text,
+      getAttribute(name) {
+        return name === "href" ? href : null;
+      }
+    };
+  }
+
+  function li({ link, nested = null }) {
+    const children = [];
+    if (link) children.push({ tagName: "A", ...link });
+    if (nested) children.push(nested);
+    return {
+      tagName: "LI",
+      children,
+      querySelector(selector) {
+        if (selector === "a") {
+          return children.find((c) => c.tagName === "A") || null;
+        }
+        return null;
+      }
+    };
+  }
+
+  function ul(items) {
+    return {
+      tagName: "UL",
+      children: items
+    };
+  }
+
+  const nestedList = ul([li({ link: anchor("Child", "#child") })]);
+  const rootList = ul([
+    li({ link: anchor("Intro", "#intro") }),
+    li({ link: anchor("Section", "#section"), nested: nestedList })
+  ]);
+
+  const tocNode = {
+    nodeType: 1,
+    tagName: "NAV",
+    ownerDocument: {
+      documentElement: { outerHTML: '<div data-renderer-start-pos="1"><nav class="toc"></nav></div>' },
+      body: { innerHTML: '<div data-renderer-start-pos="1"></div>' }
+    },
+    getAttribute(name) {
+      return name === "class" ? "ak-renderer-toc" : null;
+    },
+    querySelectorAll(selector) {
+      if (selector === "a") return [1, 2, 3];
+      if (selector === "ul li a") return [1, 2, 3];
+      return [];
+    },
+    querySelector(selector) {
+      if (selector === "ul") return rootList;
+      return null;
+    }
+  };
+
+  assert.strictEqual(tocRule.filter(tocNode), true, "read mode toc should match filter");
+  assert.strictEqual(
+    tocRule.replacement("", tocNode).trim(),
+    "- [Intro](#intro)\n- [Section](#section)\n  - [Child](#child)",
+    "toc should render nested markdown list"
+  );
+
+  const nonReadNode = { ...tocNode, ownerDocument: { documentElement: { outerHTML: '<div data-prosemirror-node-name="heading"></div>' } } };
+  assert.strictEqual(tocRule.filter(nonReadNode), false, "toc should not run in edit mode");
+}
+
 function run() {
   testRulesIndexLoads();
   testRuleOrderingMatchesLegacy();
@@ -273,6 +480,8 @@ function run() {
   testMathMacroRegistration();
   testEscapedHtmlNormalization();
   testConfluenceModePreprocessParity();
+  testTaskListPlugin();
+  testTocPluginReadMode();
   testExtensionFallbackScopeAndStructure();
   console.log("All tests passed.");
 }

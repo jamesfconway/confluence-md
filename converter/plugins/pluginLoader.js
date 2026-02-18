@@ -6,6 +6,8 @@
   const DEFAULT_PLUGIN_ORDER = Object.freeze([
     { id: "imagePlaceholder", order: 10 },
     { id: "mentionPlaceholder", order: 20 },
+    { id: "taskList", order: 25 },
+    { id: "toc", order: 27 },
     { id: "expandBlock", order: 30 },
     { id: "panel", order: 40 },
     { id: "confluenceTable", order: 50 },
