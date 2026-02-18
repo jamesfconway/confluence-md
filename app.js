@@ -8,6 +8,7 @@ const markdownFeedback = document.getElementById("markdownFeedback");
 const clearPasteBtn = document.getElementById("clearPaste");
 const pasteFromClipboardBtn = document.getElementById("pasteFromClipboard");
 const copyMarkdownBtn = document.getElementById("copyMarkdown");
+const copyDebugBundleBtn = document.getElementById("copyDebugBundle");
 const copyHtmlBtn = document.getElementById("copyHtml");
 const includeLinksInput = document.getElementById("includeLinks");
 const includeImagePlaceholdersInput = document.getElementById("includeImagePlaceholders");
@@ -274,7 +275,29 @@ async function copyHtml() {
   return copyTextToClipboard(htmlView.value, "Raw HTML copied to clipboard.");
 }
 
+function buildDebugBundle() {
+  const html = htmlView?.value || "";
+  const markdown = markdownView?.value || "";
+  return [
+    "# Input HTML",
+    "```html",
+    html,
+    "```",
+    "",
+    "---",
+    "# Markdown output",
+    "```md",
+    markdown,
+    "```"
+  ].join("\n");
+}
+
+async function copyDebugBundle() {
+  return copyTextToClipboard(buildDebugBundle(), "Debug HTML + Markdown copied to clipboard.");
+}
+
 copyMarkdownBtn?.addEventListener("click", copyMarkdown);
+copyDebugBundleBtn?.addEventListener("click", copyDebugBundle);
 copyHtmlBtn?.addEventListener("click", copyHtml);
 
 [includeLinksInput, includeImagePlaceholdersInput, emojiNamesInput].forEach((input) => {
